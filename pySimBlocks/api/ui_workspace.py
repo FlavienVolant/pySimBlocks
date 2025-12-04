@@ -1,31 +1,43 @@
 import streamlit as st
 import numpy as np
+import sys
 import types
 import os
 
 def render_workspace():
+
     ws = st.session_state["workspace"]
 
     cmd = st.chat_input("Python command…")
 
     if cmd:
+
+        # 1) Ajouter le project_dir dans sys.path
         project_dir = st.session_state.get("project_dir", None)
-        if project_dir:
-            old_cwd = os.getcwd()
-            os.chdir(project_dir)
+        if project_dir and project_dir not in sys.path:
+            sys.path.insert(0, project_dir)
+
+        # Namespace global persistant
+        g = st.session_state.setdefault("workspace_globals", {"np": np})
 
         try:
+            # 2) Essayer exec d'abord (gère les imports)
             try:
-                result = eval(cmd, {"np": np}, ws)
-                st.session_state["last_result"] = result
-            except:
-                exec(cmd, {"np": np}, ws)
-                st.session_state["last_result"] = "OK"
+                exec(cmd, g, ws)
+                result = "OK"
+            except SyntaxError:
+                # pour les expressions simples
+                result = eval(cmd, g, ws)
+
+            # 3) Copier vers le workspace les imports faits dans g
+            for k, v in g.items():
+                if k not in {"np", "__builtins__"}:
+                    ws[k] = v
+
+            st.session_state["last_result"] = result
+
         except Exception as e:
             st.error(str(e))
-        finally:
-            if project_dir:
-                os.chdir(old_cwd)
 
     # Display result
     if "last_result" in st.session_state:
@@ -39,7 +51,5 @@ def render_workspace():
         if k.startswith("_"):
             continue
         if isinstance(v, (types.ModuleType, types.FunctionType, type)):
-            continue
-        if k == "np":
             continue
         st.write(f"**{k}** = {v}")
