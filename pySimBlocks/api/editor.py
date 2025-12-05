@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 from fractions import Fraction
 
-from pySimBlocks.api.utils import load_registry
+from pySimBlocks.api.helpers import load_registry
 from pySimBlocks.api.ui_diagram import render_diagram
 from pySimBlocks.api.ui_blocks import render_block_form, render_block_list
 from pySimBlocks.api.ui_connections import render_connections

@@ -1,6 +1,6 @@
 import yaml
 import streamlit as st
-from pySimBlocks.api.utils import FlowStyleList
+from pySimBlocks.api.helpers import FlowStyleList
 
 def render_yaml_export(blocks, connections, dt, T, logs, plots):
     st.header("YAML Export")

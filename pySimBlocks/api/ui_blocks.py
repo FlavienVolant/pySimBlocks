@@ -1,5 +1,5 @@
 import streamlit as st
-from pySimBlocks.api.utils import parse_array
+from pySimBlocks.api.helpers import parse_array
 
 
 # ============================================================
