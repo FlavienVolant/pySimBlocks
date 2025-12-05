@@ -66,3 +66,9 @@ class Block(ABC):
         """
         for key, value in self.next_state.items():
             self.state[key] = np.copy(value)
+
+    def finalize(self):
+        """
+        Optional cleanup method called at the end of the simulation.
+        """
+        pass

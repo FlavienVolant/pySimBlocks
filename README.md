@@ -36,7 +36,7 @@ Outputs:
 ## Idée de blocks
 
 - [ ] Saturation
-- [ ] Block Sofa
+- [x] Block Sofa
 - [x] Integrator
 - [x] Derivator
 - [ ] Discrete PID

@@ -125,10 +125,12 @@ class Simulator:
             self.step()
             self._log(variables_to_log)
 
-        # Finalization
+
         for block in self.model.blocks.values():
-            finalize = getattr(block, "finalize", None)
-            if callable(finalize):
-                finalize()
+            try:
+                block.finalize()
+            except Exception as e:
+                print(f"[WARNING] finalize() failed for block {block.name}: {e}")
+
 
         return self.logs
