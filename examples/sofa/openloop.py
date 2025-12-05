@@ -9,7 +9,7 @@ from pySimBlocks.blocks.sources import Step
 
 def main():
 
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Finger.py')
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'finger', 'Finger.py')
 
 
     # --- Create Blocks ---
