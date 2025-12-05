@@ -21,6 +21,7 @@ dependencies = [
 [project.scripts]
 pysimblocks = "pySimBlocks.api.launch:main"
 pysimblocks-generate = "pySimBlocks.generate.cli:main"
+pysimblocks-update = "pySimBlocks.tools.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

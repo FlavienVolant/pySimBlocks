@@ -24,6 +24,15 @@ delay:
   - name: initial_output
     optional: true
     type: array (n,1)
+discrete_derivator:
+  category: operators
+  inputs:
+    dynamic: false
+    ports:
+    - in
+  outputs:
+  - out
+  parameters: []
 discrete_integrator:
   category: operators
   inputs:
@@ -36,6 +45,9 @@ discrete_integrator:
   - name: initial_state
     optional: true
     type: array (n,1)
+  - name: method
+    optional: true
+    type: str
 gain:
   category: operators
   inputs:

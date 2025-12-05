@@ -1,3 +1,6 @@
+import os
+import yaml
+
 def python_array(x):
     """Convert list → np.array code."""
     return f"np.array({repr(x)})"
@@ -6,41 +9,30 @@ def to_camel(name):
     """Convert step → Step, linear_state_space → LinearStateSpace."""
     return "".join(w.capitalize() for w in name.split("_"))
 
+def load_block_index():
+    path = os.path.join(os.path.dirname(__file__), "pySim_blocks_index.yaml")
+    with open(path, "r") as f:
+        return yaml.safe_load(f)
+
+BLOCK_INDEX = load_block_index()
+
 def resolve_class(from_group, type_name):
-    """
-    Résolution automatique de la classe Python et du module à importer :
-    sources: Step, Ramp...
-    systems: LinearStateSpace, LpvSystem, ...
-    operators: Gain, Sum, Delay, ...
-    """
-    base = to_camel(type_name)
+    class_name = to_camel(type_name)
 
-    if from_group == "sources":
-        # Step → Step
-        class_name = base
-        module = "pySimBlocks.blocks.sources"
+    if from_group not in BLOCK_INDEX:
+        raise ValueError(
+            f"Unknown block group '{from_group}'. "
+            f"Available groups: {list(BLOCK_INDEX.keys())}. "
+            f"Run pysimblocks-update to refresh the metadata."
+        )
 
-    elif from_group == "systems":
-        # LinearStateSpace → LinearStateSpace
-        class_name = base
-        module = "pySimBlocks.blocks.systems"
+    if class_name not in BLOCK_INDEX[from_group]:
+        raise ValueError(
+            f"Block '{class_name}' not found in group '{from_group}'. "
+            f"Available blocks: {BLOCK_INDEX[from_group]}. "
+            f"Run pysimblocks-update after adding new blocks."
+        )
 
-    elif from_group == "operators":
-        # Gain → Gain
-        class_name = base
-        module = "pySimBlocks.blocks.operators"
-
-    elif from_group == "controllers":
-        # StateFeedback → StateFeedback
-        class_name = base
-        module = "pySimBlocks.blocks.controllers"
-
-    elif from_group == "observers":
-        # Luenberger → Luenberger
-        class_name = base
-        module = "pySimBlocks.blocks.observers"
-
-    else:
-        raise ValueError(f"Unknown block group '{from_group}'.")
+    module = f"pySimBlocks.blocks.{from_group}"
 
     return module, class_name

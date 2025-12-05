@@ -141,7 +141,7 @@ def discover_blocks(base_path):
 
 def generate_registry(output_path="pySim_blocks_registry.yaml"):
     base_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "blocks")
-    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), output_path)
+    output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "api", output_path)
 
     blocks = discover_blocks(base_path)
 
@@ -173,7 +173,3 @@ def generate_registry(output_path="pySim_blocks_registry.yaml"):
         yaml.dump(registry, f, sort_keys=True)
 
     print(f"Registry successfully written to {output_path}")
-
-
-if __name__ == "__main__":
-    generate_registry()

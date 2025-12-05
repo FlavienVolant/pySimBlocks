@@ -18,6 +18,7 @@ pySimBlocks is a lightweight and extensible environment for building, configurin
 - [ ] Nom de la section des plots générés
 - [ ] Afficher la doc quand on selectionne un bloc
 - [ ] Exemple P - PI - PID
+- [x] Generer automatique les sources possibles dans generate avec un yaml
 
 
 ## Documentation
