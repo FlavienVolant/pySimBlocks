@@ -182,13 +182,13 @@ ramp:
   parameters:
   - name: slope
     optional: false
-    type: float | array (n,1)
+    type: float | array-like (n,) | array (n,1)
   - name: start_time
     optional: false
-    type: float | array (n,1)
-  - name: initial_output
+    type: float | array-like (n,) | array (n,1)
+  - name: offset
     optional: true
-    type: array (n,1)
+    type: float | array-like (n,) | array (n,1)
 sinusoidal:
   category: sources
   inputs:
@@ -201,16 +201,16 @@ sinusoidal:
   parameters:
   - name: amplitude
     optional: false
-    type: float | array (n,1)
+    type: float | array-like (n,) | array (n,1)
   - name: frequency
     optional: false
-    type: float | array (n,1)
+    type: float | array-like (n,) | array (n,1)
   - name: offset
     optional: false
-    type: float | array (n,1)
+    type: float | array-like (n,) | array (n,1)
   - name: phase
     optional: false
-    type: float | array (n,1)
+    type: float | array-like (n,) | array (n,1)
 sofa_system:
   category: systems
   inputs:
@@ -259,11 +259,11 @@ step:
   parameters:
   - name: value_before
     optional: false
-    type: array (n,1)
+    type: float | array-like (n,) | array (n,1)
   - name: value_after
     optional: false
-    type: array (n,1)
-  - name: t_step
+    type: float | array-like (n,) | array (n,1)
+  - name: start_time
     optional: false
     type: float
 sum:

@@ -19,7 +19,7 @@ def main():
         name="slope",
         slope=slope,
         start_time=start_time,
-        initial_output=initial_output,
+        offset=initial_output,
     )
 
     # --------------------------------------

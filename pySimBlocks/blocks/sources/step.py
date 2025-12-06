@@ -1,24 +1,24 @@
 import numpy as np
-from pySimBlocks.core.block import Block
+from pySimBlocks.core.block_source import BlockSource
 
 
-class Step(Block):
+class Step(BlockSource):
     """
     Step signal source.
 
     Description:
         Computes:
-            out(t) = value_before    if t < t_step
-            out(t) = value_after     if t ≥ t_step
+            out(t) = value_before    if t < start_time
+            out(t) = value_after     if t ≥ start_time
 
     Parameters:
         name: str
             Block name.
-        value_before: array (n,1)
-            Output value before t_step.
-        value_after: array (n,1)
-            Output value after t_step.
-        t_step: float
+        value_before: float | array-like (n,) | array (n,1)
+            Output value before start_time.
+        value_after: float | array-like (n,) | array (n,1)
+            Output value after start_time.
+        start_time: float
             Switching time.
 
     Inputs:
@@ -29,52 +29,49 @@ class Step(Block):
             Step output vector.
     """
 
-    def __init__(self, name: str,
-                 value_before: np.ndarray,
-                 value_after: np.ndarray,
-                 t_step: float):
+    def __init__(self, name: str, value_before, value_after, start_time):
 
         super().__init__(name)
 
-        # Normalize to (n,1)
-        vb = np.asarray(value_before).reshape(-1, 1)
-        va = np.asarray(value_after).reshape(-1, 1)
+        # --- Validate and normalize values ---
+        vb = np.asarray(value_before)
+        va = np.asarray(value_after)
+
+        # reshape using the same rules as Constant
+        vb = self._to_column_vector("value_before", vb)
+        va = self._to_column_vector("value_after", va)
 
         if vb.shape != va.shape:
-            raise ValueError("value_before and value_after must have the same shape.")
+            raise ValueError(
+                f"[{self.name}] 'value_before' and 'value_after' must have same shape. "
+                f"Got {vb.shape} vs {va.shape}."
+            )
 
         self.value_before = vb
         self.value_after = va
-        self.t_step = float(t_step)
 
-        # Single output port
+        # --- Validate start_time ---
+        if not isinstance(start_time, (float, int)):
+            raise TypeError(f"[{self.name}] start_time must be a float or int.")
+
+        self.start_time = float(start_time)
+
+        # Output port
         self.outputs["out"] = None
 
 
+    # ------------------------------------------------------------------
     def initialize(self, t0: float):
-        """
-        Set output at initialization time t0.
-        """
-        if t0 < self.t_step:
-            self.outputs["out"] = np.copy(self.value_before)
-        else:
-            self.outputs["out"] = np.copy(self.value_after)
+        self.outputs["out"] = (
+            np.copy(self.value_before)
+            if t0 < self.start_time
+            else np.copy(self.value_after)
+        )
 
-        # No state to initialize.
-
-
+    # ------------------------------------------------------------------
     def output_update(self, t: float):
-        """
-        y[k] = step(t)
-        """
-        if t < self.t_step:
-            self.outputs["out"] = np.copy(self.value_before)
-        else:
-            self.outputs["out"] = np.copy(self.value_after)
-
-
-    def state_update(self, t: float, dt: float):
-        """
-        Step source has no internal state.
-        """
-        pass
+        self.outputs["out"] = (
+            np.copy(self.value_before)
+            if t < self.start_time
+            else np.copy(self.value_after)
+        )

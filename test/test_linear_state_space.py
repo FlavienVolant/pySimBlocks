@@ -17,7 +17,7 @@ def main():
         name="ref",
         value_before=np.array([[0.0]]),
         value_after=np.array([[1.0]]),
-        t_step=0.2,
+        start_time=0.2,
     )
 
     # Linear state-space system

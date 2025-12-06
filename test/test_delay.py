@@ -8,12 +8,12 @@ def run_delay_test(num_delays, dt, T, initial_output=None):
     Utility function returning reference signal and delayed signal.
     """
 
-    # Step: 0 -> 1 at t_step = 0.5
+    # Step: 0 -> 1 at start_time = 0.5
     ref = Step(
         name="ref",
         value_before=np.array([[0.0]]),
         value_after=np.array([[1.0]]),
-        t_step=0.1
+        start_time=0.1
     )
 
     delay = Delay(

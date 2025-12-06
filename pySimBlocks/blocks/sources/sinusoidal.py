@@ -1,8 +1,8 @@
 import numpy as np
-from pySimBlocks.core.block import Block
+from pySimBlocks.core.block_source import BlockSource
 
 
-class Sinusoidal(Block):
+class Sinusoidal(BlockSource):
     """
     Multi-dimensional sinusoidal signal source.
 
@@ -13,13 +13,13 @@ class Sinusoidal(Block):
     Parameters:
         name: str
             Block name.
-        amplitude: float | array (n,1)
-            Amplitude A_i of each sinusoid.
-        frequency: float | array (n,1)
-            Frequency f_i of each sinusoid (Hz).
-        offset: float | array (n,1)
+        amplitude: float | array-like (n,) | array (n,1)
+            Amplitude A_i.
+        frequency: float | array-like (n,) | array (n,1)
+            Frequency f_i (Hz).
+        offset: float | array-like (n,) | array (n,1)
             Offset added to each output.
-        phase: float | array (n,1)
+        phase: float | array-like (n,) | array (n,1)
             Phase shift φ_i (rad).
 
     Inputs:
@@ -30,87 +30,51 @@ class Sinusoidal(Block):
             Sinusoidal output vector.
     """
 
-    def __init__(
-        self,
-        name: str,
-        amplitude,
-        frequency,
-        offset=0.0,
-        phase=0.0,
-    ):
+    def __init__(self, name, amplitude, frequency, offset=0.0, phase=0.0):
         super().__init__(name)
 
-        # Convert and broadcast parameters to shape (n, 1)
-        self.amplitude, self.frequency, self.offset, self.phase = \
-            self._prepare_parameters(amplitude, frequency, offset, phase)
+        # Normalize parameters to column vectors
+        A = self._to_column_vector("amplitude", np.asarray(amplitude))
+        F = self._to_column_vector("frequency", np.asarray(frequency))
+        O = self._to_column_vector("offset",    np.asarray(offset))
+        P = self._to_column_vector("phase",     np.asarray(phase))
 
-        # single output port: "out" (n x 1)
-        n = self.amplitude.shape[0]
+        # Determine final dimension n
+        dims = {A.shape[0], F.shape[0], O.shape[0], P.shape[0]}
+        dims.discard(1)
+        if len(dims) > 1:
+            raise ValueError(
+                f"[{self.name}] Inconsistent parameter lengths: "
+                f"amplitude={A.shape}, frequency={F.shape}, offset={O.shape}, phase={P.shape}"
+            )
+        n = max(A.shape[0], F.shape[0], O.shape[0], P.shape[0])
+
+        # Broadcast scalar parameters to dimension n
+        def expand(x):
+            if x.shape[0] == 1:
+                return np.full((n, 1), x.item(), dtype=float)
+            return x.astype(float)
+
+        self.amplitude = expand(A)
+        self.frequency = expand(F)
+        self.offset    = expand(O)
+        self.phase     = expand(P)
+
+        # Initialize output
         self.outputs["out"] = np.zeros((n, 1))
 
-    @staticmethod
-    def _prepare_parameters(amplitude, frequency, offset, phase):
-        """
-        Take amplitude, frequency, offset, phase as scalars or 1D arrays
-        and return four arrays of shape (n, 1) with consistent length n.
-        """
-
-        def _to_array(x):
-            x = np.asarray(x, dtype=float)
-            if x.ndim == 0:
-                return x.reshape(1, 1)  # scalar -> (1,1)
-            elif x.ndim == 1:
-                return x.reshape(-1, 1) # (n,) -> (n,1)
-            elif x.ndim == 2 and x.shape[1] == 1:
-                return x
-            else:
-                raise ValueError("Parameters must be scalar, 1D array, or (n,1) array.")
-
-        A = _to_array(amplitude)
-        F = _to_array(frequency)
-        O = _to_array(offset)
-        P = _to_array(phase)
-
-        # determine target dimension n
-        sizes = [A.shape[0], F.shape[0], O.shape[0], P.shape[0]]
-        n = max(sizes)
-
-        def _expand(x):
-            if x.shape[0] == 1:
-                # broadcast scalar to length n
-                return np.full((n, 1), x.item(), dtype=float)
-            if x.shape[0] == n:
-                return x.astype(float)
-            raise ValueError(
-                f"Inconsistent parameter size {x.shape[0]} with target dimension {n}."
-            )
-
-        A = _expand(A)
-        F = _expand(F)
-        O = _expand(O)
-        P = _expand(P)
-
-        return A, F, O, P
-
+    # ------------------------------------------------------------------
     def _compute_output(self, t: float):
-        """
-        Compute out(t) = A * sin(2 pi f t + phi) + offset
-        with A, f, phi, offset of shape (n, 1).
-        """
         self.outputs["out"] = (
-            self.amplitude * np.sin(2.0 * np.pi * self.frequency * t + self.phase)
+            self.amplitude
+            * np.sin(2 * np.pi * self.frequency * t + self.phase)
             + self.offset
         )
 
-
+    # ------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
         self._compute_output(t0)
 
-
+    # ------------------------------------------------------------------
     def output_update(self, t: float) -> None:
         self._compute_output(t)
-
-
-    def state_update(self, t: float, dt: float) -> None:
-        # self._compute_output(t)
-        pass

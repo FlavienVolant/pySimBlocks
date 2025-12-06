@@ -19,7 +19,7 @@ def main():
         name="u",
         value_before=np.array([[0.0]]),
         value_after=np.array([[1.0]]),
-        t_step=0.5
+        start_time=0.5
     )
     state_matrix = Gain(name="A", gain=A)
     input_matrix = Gain(name="B", gain=B)

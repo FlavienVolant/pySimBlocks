@@ -1,7 +1,8 @@
 import numpy as np
-from pySimBlocks.core.block import Block
+from pySimBlocks.core.block_source import BlockSource
 
-class Ramp(Block):
+
+class Ramp(BlockSource):
     """
     Multi-dimensional ramp signal source.
 
@@ -12,11 +13,11 @@ class Ramp(Block):
     Parameters:
         name: str
             Block name.
-        slope: float | array (n,1)
+        slope: float | array-like (n,) | array (n,1)
             Slope of each output dimension.
-        start_time: float | array (n,1)
+        start_time: float | array-like (n,) | array (n,1)
             Time at which each ramp starts.
-        initial_output: array (n,1) (optional)
+        offset: float | array-like (n,) | array (n,1) (optional)
             Value before the ramp starts (default = zeros).
 
     Inputs:
@@ -27,69 +28,46 @@ class Ramp(Block):
             Ramp output vector.
     """
 
-    def __init__(
-        self,
-        name: str,
-        slope,
-        start_time=0.0,
-        initial_output=None,
-    ):
+    def __init__(self, name, slope, start_time=0.0, offset=None):
         super().__init__(name)
 
-        # Prepare parameters to consistent (n,1) arrays
-        self.slope, self.start_time, self.initial_output = \
-            self._prepare_parameters(slope, start_time, initial_output)
+        # --- Validate and normalize parameters ---
+        S = self._to_column_vector("slope", np.asarray(slope))
+        T = self._to_column_vector("start_time", np.asarray(start_time))
 
-        n = self.slope.shape[0]
-
-        # Single output: n-dimensional vector
-        self.outputs["out"] = np.copy(self.initial_output)
-
-
-    @staticmethod
-    def _to_array(x):
-        x = np.asarray(x, dtype=float)
-        if x.ndim == 0:
-            return x.reshape(1,1)
-        elif x.ndim == 1:
-            return x.reshape(-1,1)
-        elif x.ndim == 2 and x.shape[1] == 1:
-            return x
-        else:
-            raise ValueError("Parameters must be scalar, 1D array, or (n,1) array.")
-
-
-    @classmethod
-    def _prepare_parameters(cls, slope, start_time, initial_output):
-        # Convert to arrays
-        S = cls._to_array(slope)
-        T = cls._to_array(start_time)
-        if initial_output is None:
+        if offset is None:
             O = np.zeros_like(S)
         else:
-            O = cls._to_array(initial_output)
+            O = self._to_column_vector("offset", np.asarray(offset))
 
-        # Determine target dimension
+        # Determine common dimension n
+        dims = {S.shape[0], T.shape[0], O.shape[0]}
+        dims.discard(1)  # scalar-like parameters are allowed
+        if len(dims) > 1:
+            raise ValueError(
+                f"[{self.name}] Inconsistent dimensions among parameters "
+                f"slope={S.shape}, start_time={T.shape}, offset={O.shape}."
+            )
         n = max(S.shape[0], T.shape[0], O.shape[0])
 
+        # Broadcast scalars into full vectors
         def expand(x):
             if x.shape[0] == 1:
-                return np.full((n,1), x.item(), dtype=float)
-            if x.shape[0] == n:
-                return x.astype(float)
-            raise ValueError(f"Inconsistent size {x.shape[0]} with target dimension {n}.")
+                return np.full((n, 1), x.item(), dtype=float)
+            return x.astype(float)
 
-        return expand(S), expand(T), expand(O)
+        self.slope = expand(S)
+        self.start_time = expand(T)
+        self.offset = expand(O)
 
+        # Output port
+        self.outputs["out"] = np.copy(self.offset)
 
+    # ------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
-        self.outputs["out"] = np.copy(self.initial_output)
+        self.outputs["out"] = np.copy(self.offset)
 
-
+    # ------------------------------------------------------------------
     def output_update(self, t: float) -> None:
         dt_vec = np.maximum(0.0, t - self.start_time)
-        self.outputs["out"] = self.initial_output + self.slope * dt_vec
-
-
-    def state_update(self, t: float, dt: float) -> None:
-        pass
+        self.outputs["out"] = self.offset + self.slope * dt_vec
