@@ -10,122 +10,178 @@ class DiscreteIntegrator(Block):
         Implements:
             x[k+1] = x[k] + dt * in[k]
             out[k] = x[k]
-        Supported integration method: 'euler forward', 'euler backward' (default: 'euler forward').
+
+        Supported integration method:
+            - 'euler forward'
+            - 'euler backward'
+        (default = 'euler forward')
 
     Parameters:
         name: str
             Block name.
-        initial_state: array (n,1) (optional)
-            Initial state value.
+
+        initial_state: float | array-like (n,) | array (n,1) (optional)
+            Initial value of the integrated state x[0]. (default = zeros)
+            If None:
+                - If input is known at initialization → x[0] = zeros of the same dimension
+                - Otherwise dimension is inferred at the first step
+
         method: str (optional)
-            Integration method (default: 'euler forward').
+            Integration method. (default = 'euler forward')
+            Supported:
+                - 'euler forward'
+                - 'euler backward'
 
     Inputs:
         in: array (n,1)
-            Input signal to integrate.
+            Signal to integrate.
 
     Outputs:
         out: array (n,1)
-            Integrated state x[k].
+            Current integrated state x[k].
     """
-
 
     def __init__(self,
         name: str,
-        initial_state: np.ndarray | None = None,
+        initial_state=None,
         method: str = "euler forward"
     ):
         super().__init__(name)
 
+        # --------------------------- validate method
         self.method = method.lower()
-        if self.method not in ["euler forward", "euler backward"]:
-            raise ValueError(f"[{self.name}] Unsupported integration method '{method}'. Supported methods are 'euler forward' and 'euler backward'.")
+        if self.method not in ("euler forward", "euler backward"):
+            raise ValueError(
+                f"[{self.name}] Unsupported method '{method}'. "
+                f"Allowed: 'euler forward', 'euler backward'."
+            )
 
+        # --------------------------- ports
         self.inputs["in"] = None
         self.outputs["out"] = None
 
-        # Internal state x[k]
+        # --------------------------- state
         if initial_state is not None:
-            x0 = np.asarray(initial_state).reshape(-1, 1)
-            self.state["x"] = x0.copy()
+            arr = np.asarray(initial_state)
+            if arr.ndim == 0:
+                arr = arr.reshape(1, 1)
+            elif arr.ndim == 1:
+                arr = arr.reshape(-1, 1)
+            elif arr.ndim == 2 and arr.shape[1] == 1:
+                pass
+            else:
+                raise ValueError(
+                    f"[{self.name}] initial_state must be scalar or column vector (n,1). "
+                    f"Got shape {arr.shape}."
+                )
+            self.state["x"] = arr.copy()
         else:
-            # Dimension not known yet → initialized on first step
             self.state["x"] = None
 
-        # Next state placeholder
         self.next_state["x"] = None
+        self._dt = 0.0   # for backward Euler
 
 
-    # ------------------------------------------------------------------
-    # INITIALIZATION
     # ------------------------------------------------------------------
     def initialize(self, t0: float):
         """
-        Initialize x[0] and y[0].
-        If no initial state and input is known, dimension is inferred.
+        Initialize state x[0] and output.
+
+        Rules:
+        - If initial_state provided → use it
+        - Else if input available → infer dimension and set x[0] = zeros
+        - Else output stays None until dimension known
         """
-        self._dt = 0.0  # Time step storage for backward Euler
         x = self.state["x"]
         u = self.inputs["in"]
 
-        if x is None:
-            if u is not None:
-                u = np.asarray(u).reshape(-1, 1)
-                self.state["x"] = np.zeros_like(u)
-            else:
-                # output unknown until dimensions known
-                self.outputs["out"] = None
-                return
+        if x is not None:
+            # Fully initialized
+            self.outputs["out"] = x.copy()
+            self.next_state["x"] = x.copy()
+            return
 
-        self.outputs["out"] = self.state["x"].copy()
-        self.next_state["x"] = self.state["x"].copy()
+        # Input already present → infer dimension
+        if u is not None:
+            u = np.asarray(u)
+            if u.ndim != 2 or u.shape[1] != 1:
+                raise ValueError(
+                    f"[{self.name}] Input 'in' must be column vector (n,1). Got {u.shape}."
+                )
+            u = u.reshape(-1, 1)
 
-    # ------------------------------------------------------------------
-    # PHASE 1 : OUTPUT UPDATE
+            self.state["x"] = np.zeros_like(u)
+            self.outputs["out"] = self.state["x"].copy()
+            self.next_state["x"] = self.state["x"].copy()
+            return
+
+        # Dimension unknown → output not ready
+        self.outputs["out"] = None
+
+
     # ------------------------------------------------------------------
     def output_update(self, t: float):
-        """
-        y[k] = x[k]
-        """
         x = self.state["x"]
         if x is None:
-            raise RuntimeError(f"[{self.name}] State not initialized yet.")
+            raise RuntimeError(f"[{self.name}] State not initialized.")
 
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' not set.")
 
+        # Euler forward simply outputs x[k]
         if self.method == "euler forward":
             self.outputs["out"] = x.copy()
 
-        elif self.method == "euler backward":
-            u = np.asarray(u).reshape(-1, 1)
+        # Euler backward outputs x[k] + dt * u[k]
+        else:
+            u = np.asarray(u)
+            if u.ndim != 2 or u.shape[1] != 1:
+                raise ValueError(
+                    f"[{self.name}] Input 'in' must be column vector (n,1). Got {u.shape}."
+                )
+            u = u.reshape(-1, 1)
+
+            if u.shape != x.shape:
+                raise ValueError(
+                    f"[{self.name}] Input has shape {u.shape}, but state has shape {x.shape}."
+                )
+
             self.outputs["out"] = x + self._dt * u
 
-    # ------------------------------------------------------------------
-    # PHASE 2 : STATE UPDATE
+
     # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float):
         """
-        Compute x[k+1] based on the method.
+        Update internal state:
+            Euler forward  : x[k+1] = x[k] + dt * u[k]
+            Euler backward : x[k+1] = x[k] + dt * u[k]
+            (same formula, difference is only in output_update)
         """
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' not set.")
 
-        u = np.asarray(u).reshape(-1, 1)
+        u = np.asarray(u)
+        if u.ndim != 2 or u.shape[1] != 1:
+            raise ValueError(
+                f"[{self.name}] Input 'in' must be column vector (n,1). Got {u.shape}."
+            )
+        u = u.reshape(-1, 1)
 
         x = self.state["x"]
 
-        self._dt = dt  # Store dt for backward Euler output update
+        if x is not None:
+            if u.shape != x.shape:
+                raise ValueError(
+                    f"[{self.name}] Input has dimension {u.shape}, "
+                    f"but state has dimension {x.shape}."
+                )
 
+        # 3) Late initialization ONLY if x was truly never set
         if x is None:
-            # Late initialization
+            # Late dimension inference
             x = np.zeros_like(u)
 
-        if self.method == "euler forward":
-           x_next = x + dt * u
-        elif self.method == "euler backward":
-           x_next = x + dt * u
-
-        self.next_state["x"] = x_next
+        self._dt = dt
+        self.next_state["x"] = x + dt * u

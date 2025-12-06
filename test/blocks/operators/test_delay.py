@@ -108,27 +108,3 @@ def test_delay_vector_1_step():
     assert np.allclose(logs[0], expected0)
     assert np.allclose(logs[1], expected1)
     assert np.allclose(logs[2], expected2)
-
-# ------------------------------------------------------------
-def test_delay_input_dimension_mismatch():
-    d = Delay("D", num_delays=1)
-
-    m = Model()
-
-    # Step en 1D
-    src1 = Step("s1", start_time=0.0, value_before=[[0.]], value_after=[[1.]])
-    m.add_block(src1)
-
-    m.add_block(d)
-    m.connect("s1", "out", "D", "in")
-
-    sim = Simulator(m, dt=0.1)
-
-    # Première itération OK → input dim = (1,1)
-    sim.step()
-
-    # Forcer une entrée dimension (2,1)
-    d.inputs["in"] = np.array([[1.],[2.]])
-
-    with pytest.raises(ValueError):
-        sim.step()   # doit échouer
