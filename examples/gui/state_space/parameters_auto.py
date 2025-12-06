@@ -14,7 +14,7 @@ sum_signs = np.array([1, 1])
 
 step_value_before = np.array([[0]])
 step_value_after = np.array([[1]])
-step_t_step = 0.5
+step_start_time = 0.5
 
 plant_A = np.array([[0.9, 0.4], [0.0, 0.97]])
 plant_B = np.array([[0.0], [1.0]])

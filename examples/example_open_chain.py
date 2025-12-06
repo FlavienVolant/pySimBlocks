@@ -17,13 +17,13 @@ def main():
         name="r1",
         value_before=np.array([[0.0]]),
         value_after=np.array([[1.0]]),
-        t_step=0.5
+        start_time=0.5
     )
     step2 = Step(
         name="r2",
         value_before=np.array([[0.0]]),
         value_after=np.array([[1.0]]),
-        t_step=0.5
+        start_time=0.5
     )
     gain = Gain(name="g", gain=2.0)
     sum = Sum(name="s", num_inputs=2, signs=[1, 1])

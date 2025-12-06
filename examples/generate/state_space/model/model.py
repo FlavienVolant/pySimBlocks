@@ -10,7 +10,7 @@ from parameters_auto import *
 
 model = Model('auto_model')
 
-ref = Step('ref', value_before=ref_value_before, value_after=ref_value_after, t_step=ref_t_step)
+ref = Step('ref', value_before=ref_value_before, value_after=ref_value_after, start_time=ref_start_time)
 model.add_block(ref)
 
 B = Gain('B', gain=B_gain)

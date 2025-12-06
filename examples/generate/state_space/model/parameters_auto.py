@@ -2,7 +2,7 @@ import numpy as np
 
 ref_value_before = np.array([0])
 ref_value_after = np.array([1])
-ref_t_step = 0.5
+ref_start_time = 0.5
 
 B_gain = np.array([[1.0]])
 

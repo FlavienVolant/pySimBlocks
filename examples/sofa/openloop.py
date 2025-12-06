@@ -17,7 +17,7 @@ def main():
         name="step",
         value_before=0.0,
         value_after=1.0,
-        t_step=0.5,
+        start_time=0.5,
     )
 
     sofa_block = SofaSystem(

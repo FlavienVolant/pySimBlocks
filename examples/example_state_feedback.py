@@ -16,12 +16,12 @@ def main():
     G = np.linalg.inv(C @ np.linalg.inv(np.eye(2) - A + B @ K) @ B)
 
     # --- 2. Create blocks ---
-    # Step : 0 -> 1 at t_step = 0.5 s
+    # Step : 0 -> 1 at start_time = 0.5 s
     ref = Step(
         name="ref",
         value_before=np.array([[0.0]]),
         value_after=np.array([[1.0]]),
-        t_step=0.5,
+        start_time=0.5,
     )
 
     # State feedback controller

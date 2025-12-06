@@ -25,7 +25,7 @@ model.add_block(delay)
 sum = Sum('sum', num_inputs=sum_num_inputs, signs=sum_signs)
 model.add_block(sum)
 
-step = Step('step', value_before=step_value_before, value_after=step_value_after, t_step=step_t_step)
+step = Step('step', value_before=step_value_before, value_after=step_value_after, start_time=step_start_time)
 model.add_block(step)
 
 plant = LinearStateSpace('plant', A=plant_A, B=plant_B, C=plant_C, x0=plant_x0)

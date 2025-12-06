@@ -18,7 +18,7 @@ def main():
         name="step",
         value_before=[[0.0]],
         value_after=[[8.0]],
-        t_step=0.4,
+        start_time=0.4,
     )
 
     kp = Gain(name="kp", gain=0.5)
