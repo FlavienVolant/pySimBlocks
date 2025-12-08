@@ -178,24 +178,47 @@ class Model:
         # 2. Insert stateful blocks after ALL their predecessors (from G_all).
         # ------------------------------------------------------------
         stateless_order = [n for n in topo_stateless if n in stateless]
-
         final_order = stateless_order.copy()
 
         if self.verbose:
             print("\nInitial stateless order:", stateless_order)
 
-        # Insert each stateful block
-        for sf in stateful:
-            consumers = G_all[sf]
-            if len(consumers) == 0:
-                insert_pos = 0
-            else:
-                insert_pos = min(final_order.index(c) for c in consumers if c in final_order)
-            if self.verbose:
-                print(f"\nPlacing stateful block '{sf}' before consumers {consumers}")
-                print(f" -> insert at position {insert_pos}")
+        # ------------------------------------------------------------
+        # RULE 4 — Insert stateful blocks AFTER all their producers
+        # ------------------------------------------------------------
+        remaining = list(stateful)
 
-            final_order.insert(insert_pos, sf)
+        if self.verbose:
+            print("\nStateful insertion order resolution...")
+
+        while remaining:
+            placed_one = False
+
+            for sf in list(remaining):
+                producers = preds[sf]
+
+                # Are ALL producers already in final_order ?
+                if all(p in final_order for p in producers):
+                    if len(producers) == 0:
+                        insert_pos = 0
+                    else:
+                        positions = [final_order.index(p) for p in producers]
+                        insert_pos = max(positions) + 1
+
+                    if self.verbose:
+                        print(f"Placing stateful block '{sf}' after producers {producers}")
+                        print(f" -> insert at {insert_pos}")
+
+                    final_order.insert(insert_pos, sf)
+                    remaining.remove(sf)
+                    placed_one = True
+                    break
+
+            if not placed_one:
+                raise RuntimeError(
+                    "Cannot place stateful blocks (cyclic dependency among stateful blocks)."
+                )
+
 
         if self.verbose:
             print("\nFINAL EXECUTION ORDER:", final_order)
