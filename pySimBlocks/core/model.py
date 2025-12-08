@@ -186,19 +186,13 @@ class Model:
 
         # Insert each stateful block
         for sf in stateful:
-            # find all producers of sf
-            producers = preds[sf]  # set of predecessor blocks
-
-            # position = index just AFTER the max position of its producers
-            max_pos = -1
-            for p in producers:
-                if p in final_order:
-                    max_pos = max(max_pos, final_order.index(p))
-
-            insert_pos = max_pos + 1
-
+            consumers = G_all[sf]
+            if len(consumers) == 0:
+                insert_pos = 0
+            else:
+                insert_pos = min(final_order.index(c) for c in consumers if c in final_order)
             if self.verbose:
-                print(f"\nPlacing stateful block '{sf}' after producers {producers}")
+                print(f"\nPlacing stateful block '{sf}' before consumers {consumers}")
                 print(f" -> insert at position {insert_pos}")
 
             final_order.insert(insert_pos, sf)
