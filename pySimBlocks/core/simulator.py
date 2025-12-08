@@ -38,7 +38,7 @@ class Simulator:
         self.execution_order: List[Block] = model.execution_order()
 
         # logs: dict[var_name -> list[np.ndarray]]
-        self.logs: Dict[str, List[np.ndarray]] = {}
+        self.logs: Dict[str, List[np.ndarray]] = {"time": []}
 
     # ----------------------------------------------------------------------
     # INITIALIZATION
@@ -91,6 +91,8 @@ class Simulator:
             if var not in self.logs:
                 self.logs[var] = []
             self.logs[var].append(np.copy(value))
+
+        self.logs["time"].append(np.array([self.t]))
 
     # ----------------------------------------------------------------------
     # ONE SIMULATION STEP

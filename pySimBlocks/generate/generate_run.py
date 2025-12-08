@@ -17,7 +17,7 @@ def generate_run(sim, plots):
 
     # time
     lines.append("length = len(next(iter(logs.values())))")
-    lines.append("time = np.arange(0, T, dt)[:length]\n")
+    lines.append("time = np.array(logs['time'])\n")
 
     # Plot sections
     for fig in plots:

@@ -40,7 +40,7 @@ def render_run_sim(param_str, model_str, yaml_data):
 
             st.success("Simulation completed.")
 
-            time = np.arange(0, T, env["dt"])[: len(next(iter(logs.values())))]
+            time = np.array(logs["time"])
 
             if "plot" in yaml_data:
                 st.subheader("Resulted Plots")
