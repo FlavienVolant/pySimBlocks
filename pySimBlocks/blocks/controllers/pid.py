@@ -4,150 +4,179 @@ from pySimBlocks.core.block import Block
 
 class Pid(Block):
     """
-    General discrete PID controller with selectable mode (P, PI, PD, ID, PID).
+    Single-input single-output discrete PID controller (Simulink-like).
 
-    Implements:
+    Description:
+        Implements the standard discrete PID law in parallel form:
 
-        u[k] = Kp * e[k]
-             + Ki * x_i[k]
-             + Kd * (e[k] - e[k-1]) / dt
+            u[k] = Kp * e[k]
+                 + Ki * x_i[k]
+                 + Kd * (e[k] - e[k-1]) / dt
 
-        x_i[k+1] = x_i[k] + e[k] * dt
+        with integral update:
+
+            x_i[k+1] = x_i[k] + e[k] * dt
+
+        This block is strictly SISO. Each gain (Kp, Ki, Kd) must be a scalar,
+        provided either as:
+            - a float,
+            - a list of length 1,
+            - a numpy array of shape (1,) or (1,1).
+
+        Any other dimension raises an explicit ValueError.
 
     Parameters:
         name: str
             Block name.
 
-        controller_type: str
-            One of: "P", "PI", "PD", "ID", "PID".
-            Determines which gains are active.
+        Kp: float | list | array (optional)
+            Proportional gain (scalar-like). (Default = 0.)
 
-        Kp: array (m,n) (optional)
-            Proportional gain matrix.
+        Ki: float | list | array (optional)
+            Integral gain (scalar-like). (Default = 0.)
 
-        Ki: array (m,n) (optional)
-            Integral gain matrix.
+        Kd: float | list | array (optional)
+            Derivative gain (scalar-like). (Default = 0.)
 
-        Kd: array (m,n) (optional)
-            Derivative gain matrix.
+        u_min: float | array-like (optional)
+            Minimum output saturation (scalar). (Default: no saturation.)
 
-        u_min: array (m,1) (optional)
-            Minimum output saturation.
-
-        u_max: array (m,1) (optional)
-            Maximum output saturation.
+        u_max: float | array-like (optional)
+            Maximum output saturation (scalar). (Default: no saturation.)
 
     Inputs:
-        e: array (n,1)
+        e: array (1,1)
             Error signal.
 
     Outputs:
-        u: array (m,1)
+        u: array (1,1)
             Control command.
     """
 
-    VALID_TYPES = ["P", "PI", "PD", "ID", "PID"]
-
+    # ---------------------------------------------------------------------
     def __init__(self,
                  name: str,
-                 controller_type: str = "P",
-                 Kp=None, Ki=None, Kd=None,
+                 Kp=0.0, Ki=0.0, Kd=0.0,
                  u_min=None, u_max=None):
 
         super().__init__(name)
 
-        # Validate type
-        if controller_type not in self.VALID_TYPES:
-            raise ValueError(
-                f"Invalid controller_type '{controller_type}'. "
-                f"Must be one of {self.VALID_TYPES}."
-            )
-        self.controller_type = controller_type
+        # -------------------------------
+        # 1) Validate and normalize gains
+        # -------------------------------
+        self.Kp = self._normalize_and_check_gain(Kp, "Kp")
+        self.Ki = self._normalize_and_check_gain(Ki, "Ki")
+        self.Kd = self._normalize_and_check_gain(Kd, "Kd")
 
-        # Kp/Ki/Kd optional — depending on type
-        self.Kp = np.asarray(Kp) if Kp is not None else None
-        self.Ki = np.asarray(Ki) if Ki is not None else None
-        self.Kd = np.asarray(Kd) if Kd is not None else None
-
-        # Activation rules
-        need_Kp = controller_type in ["P", "PI", "PD", "PID"]
-        need_Ki = controller_type in ["PI", "ID", "PID"]
-        need_Kd = controller_type in ["PD", "ID", "PID"]
-
-        if need_Kp and self.Kp is None:
-            raise ValueError("Kp must be provided for controller_type requiring proportional action.")
-        if need_Ki and self.Ki is None:
-            raise ValueError("Ki must be provided for controller_type requiring integral action.")
-        if need_Kd and self.Kd is None:
-            raise ValueError("Kd must be provided for controller_type requiring derivative action.")
-
-        if self.Kp is not None:
-            m, n = self.Kp.shape
-        elif self.Ki is not None:
-            m, n = self.Ki.shape
-        elif self.Kd is not None:
-            m, n = self.Kd.shape
+        # -------------------------------
+        # 2) Validate saturation bounds
+        # -------------------------------
+        if u_min is not None:
+            self.u_min = self._normalize_and_check_scalar(u_min, "u_min")
         else:
-            raise RuntimeError("At least one gain (Kp, Ki, or Kd) must be provided.")
+            self.u_min = None
 
-        # Missing gains replaced with zero matrices
-        # → allows unified formula regardless of type
-        if self.Kp is None:
-            self.Kp = np.zeros((m,n))
-        if self.Ki is None:
-            self.Ki = np.zeros((m,n))
-        if self.Kd is None:
-            self.Kd = np.zeros((m,n))
+        if u_max is not None:
+            self.u_max = self._normalize_and_check_scalar(u_max, "u_max")
+        else:
+            self.u_max = None
 
-        # Optional saturation
-        self.u_min = None if u_min is None else np.asarray(u_min).reshape(-1,1)
-        self.u_max = None if u_max is None else np.asarray(u_max).reshape(-1,1)
+        if self.u_min is not None and self.u_max is not None:
+            if self.u_min > self.u_max:
+                raise ValueError(
+                    f"[{self.name}] u_min ({self.u_min}) must be <= u_max ({self.u_max})."
+                )
 
-        # Ports
+        # -------------------------------
+        # 3) Declare ports
+        # -------------------------------
         self.inputs["e"] = None
         self.outputs["u"] = None
 
-        # Internal states
-        self.state["x_i"] = None
-        self.state["e_prev"] = None
-        self.next_state["x_i"] = None
-        self.next_state["e_prev"] = None
+        # -------------------------------
+        # 4) Internal state (SISO → always (1,1))
+        # -------------------------------
+        self.state["x_i"] = np.zeros((1,1))     # integral state
+        self.state["e_prev"] = np.zeros((1,1))  # previous error
+
+        self.next_state["x_i"] = np.zeros((1,1))
+        self.next_state["e_prev"] = np.zeros((1,1))
+
+        self._dt = 1.0  # updated at each step
 
 
-    # -------------------------------------------------------
+    # =====================================================================
+    #  Utility: Normalize a scalar-like value and check it is SISO
+    # =====================================================================
+    def _normalize_and_check_gain(self, value, name):
+        """Convert float/list/array to (1,1) ndarray. Reject anything else."""
+        # float
+        if np.isscalar(value):
+            return np.array([[float(value)]])
+
+        arr = np.asarray(value)
+
+        # numpy scalar
+        if arr.shape == ():
+            return np.array([[float(arr)]])
+
+        # vector of length 1
+        if arr.shape == (1,):
+            return arr.reshape((1,1))
+
+        # already (1,1)
+        if arr.shape == (1,1):
+            return arr
+
+        raise ValueError(
+            f"[{self.name}] Gain '{name}' must be scalar-like (float, list of length 1, "
+            f"array of shape (1,), or (1,1)). Received shape {arr.shape}."
+        )
+
+    def _normalize_and_check_scalar(self, value, name):
+        """Normalize a scalar-like parameter for saturations."""
+        if np.isscalar(value):
+            return np.array([[float(value)]])
+
+        arr = np.asarray(value)
+        if arr.shape == ():
+            return np.array([[float(arr)]])
+        if arr.shape == (1,):
+            return arr.reshape(1,1)
+        if arr.shape == (1,1):
+            return arr
+
+        raise ValueError(
+            f"[{self.name}] Parameter '{name}' must be scalar-like. Received shape {arr.shape}."
+        )
+
+    # =====================================================================
+    # Initialization
+    # =====================================================================
     def initialize(self, t0: float):
-        # Determine sizes automatically from Kp
-        # (safe since gains must exist when needed)
-        if isinstance(self.Kp, np.ndarray):
-            m, n = self.Kp.shape
-        else:
-            raise RuntimeError("PID gains are not initialized properly.")
+        # PID outputs start at zero
+        self.outputs["u"] = np.zeros((1,1))
 
-        self.state["x_i"] = np.zeros((m,1))
-        self.state["e_prev"] = np.zeros((n,1))
-
-        self.next_state["x_i"] = self.state["x_i"].copy()
-        self.next_state["e_prev"] = self.state["e_prev"].copy()
-
-        self.outputs["u"] = np.zeros((m,1))
-
-
-    # -------------------------------------------------------
+    # =====================================================================
+    # Phase 1 : output_update
+    # =====================================================================
     def output_update(self, t: float):
         e = self.inputs["e"]
         if e is None:
-            raise RuntimeError(f"[{self.name}] Input 'e' missing at t={t}.")
-        e = np.asarray(e).reshape(-1,1)
+            raise RuntimeError(f"[{self.name}] Missing input 'e'.")
+        e = np.asarray(e).reshape(1,1)
 
         x_i = self.state["x_i"]
         e_prev = self.state["e_prev"]
 
-        # unified PID formula (gains may be zero)
-        u = (self.Kp @ e
-             + self.Ki @ x_i
-             + self.Kd @ (e - e_prev))
+        # P, I, D terms
+        P = self.Kp * e
+        I = x_i
+        D = self.Kd * (e - e_prev) / self._dt
 
-        # saturation
+        u = P + I + D
+
+        # Apply saturation
         if self.u_min is not None:
             u = np.maximum(u, self.u_min)
         if self.u_max is not None:
@@ -155,18 +184,21 @@ class Pid(Block):
 
         self.outputs["u"] = u
 
-
-    # -------------------------------------------------------
+    # =====================================================================
+    # Phase 2 : state_update
+    # =====================================================================
     def state_update(self, t: float, dt: float):
-        e = np.asarray(self.inputs["e"]).reshape(-1,1)
+        e = np.asarray(self.inputs["e"]).reshape(1,1)
 
-        x_i = self.state["x_i"] + e * dt
+        # Integrator update
+        x_i_next = self.state["x_i"] + self.Ki * e * dt
 
-        # anti-windup via clamping
+        # Anti-windup: clamp integral state
         if self.u_min is not None:
-            x_i = np.maximum(x_i, self.u_min)
+            x_i_next = np.maximum(x_i_next, self.u_min)
         if self.u_max is not None:
-            x_i = np.minimum(x_i, self.u_max)
+            x_i_next = np.minimum(x_i_next, self.u_max)
 
-        self.next_state["x_i"] = x_i
+        self._dt = dt
+        self.next_state["x_i"] = x_i_next
         self.next_state["e_prev"] = e.copy()
