@@ -92,7 +92,7 @@ class Simulator:
                 self.logs[var] = []
             self.logs[var].append(np.copy(value))
 
-        self.logs["time"].append(np.array([self.t]))
+        self.logs["time"].append(np.array([self.t - self.dt]))
 
     # ----------------------------------------------------------------------
     # ONE SIMULATION STEP
