@@ -16,7 +16,7 @@ class Sum(Block):
             Block name.
         num_inputs: int (optional)
             Number of input ports. (default = 2)
-        signs: list[int] (optional)
+        signs: list[int] | array (1,) (optional)
             List of +1 or -1 coefficients (length = num_inputs). (default = all +1)
 
     Inputs:
@@ -37,8 +37,13 @@ class Sum(Block):
         if signs is None:
             signs = [1] * num_inputs
 
-        if not isinstance(signs, (list, tuple)):
-            raise TypeError(f"[{self.name}] 'signs' must be a list or tuple.")
+        if not isinstance(signs, (list, tuple, np.ndarray)):
+            raise TypeError(f"[{self.name}] 'signs' must be a list, tuple or array.")
+
+        if isinstance(signs, np.ndarray):
+            if signs.ndim != 1:
+                raise ValueError(f"[{self.name}] 'signs' array must be 1-dimensional.")
+            signs = signs.tolist()
 
         if any(s not in (+1, -1) for s in signs):
             raise ValueError(f"[{self.name}] 'signs' must contain only +1 or -1.")
@@ -64,11 +69,10 @@ class Sum(Block):
     # ----------------------------------------------------------------------
     def initialize(self, t0: float):
         # If inputs already present, compute; else stay None
+        ready = True
         for i in range(self.num_inputs):
             if self.inputs[f"in{i+1}"] is None:
-                self.outputs["out"] = None
-                return
-
+                self.inputs[f"in{i+1}"] = np.zeros((1,1))  # dimension fallback
         self.outputs["out"] = self._compute_output()
 
     # ----------------------------------------------------------------------

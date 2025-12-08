@@ -13,7 +13,7 @@ class Gain(Block):
     Parameters:
         name: str
             Block name.
-        value: float | array-like (n,) | array (n,1)
+        gain: float | array-like (n,) | array (n,1)
             Gain scalar, vector, or matrix.
 
     Inputs:

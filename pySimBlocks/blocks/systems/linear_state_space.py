@@ -86,7 +86,6 @@ class LinearStateSpace(Block):
                 raise ValueError(f"x0 must have shape ({n}, 1).")
 
         self.state["x"] = x0
-        # self.state["x_next"] = x0.copy()
         self.next_state["x"] = x0.copy()
 
         # ------------------------------------------------------------------
@@ -112,12 +111,13 @@ class LinearStateSpace(Block):
         x = self.state["x"]
         u = self.inputs["u"]
 
-        if u is not None:
-            u = np.asarray(u).reshape(self.B.shape[1], 1)
-            self.outputs["y"] = self.C @ x + self.D @ u
+        if u is None:
+            # Default input at initialization = 0 (Simulink behavior)
+            u = np.zeros((self.B.shape[1], 1))
         else:
-            # At init, we just take u = 0 if nothing is connected yet.
-            self.outputs["y"] = self.C @ x
+            u = np.asarray(u).reshape(self.B.shape[1], 1)
+
+        self.outputs["y"] = self.C @ x + self.D @ u
 
         # Keep next_state consistent (no state change at t0)
         self.outputs["x"] = x.copy()
@@ -155,4 +155,3 @@ class LinearStateSpace(Block):
         x = self.state["x"]
 
         self.next_state["x"] = self.A @ x + self.B @ u
-        # self.state["x"] = x
