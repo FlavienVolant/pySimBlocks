@@ -62,11 +62,11 @@ def main():
     # 5. Extract logged data
     # -------------------------------------------------------
     length = len(logs["r1.outputs.out"])
+    t = np.array(logs["time"])
     r1 = np.array(logs["r1.outputs.out"]).reshape(length, 1)
     r2 = np.array(logs["r2.outputs.out"]).reshape(length, 1)
     g = np.array(logs["g.outputs.out"]).reshape(length, 1)
     s = np.array(logs["s.outputs.out"]).reshape(length, 1)
-    t = np.arange(0, s.shape[0]) * dt
 
     print(f"Time: \n{t.flatten()}")
     print(f"r1: \n{r1.flatten()}")

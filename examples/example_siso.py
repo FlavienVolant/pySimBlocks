@@ -52,10 +52,9 @@ def main():
 
 
     # --- 6. Inspect / print some results ---
-    t = np.arange(0, T, dt)
-    length = min(len(t), len(logs["plant.outputs.y"]))
-    t = t[:length]
+    length = len(logs["plant.outputs.y"])
 
+    t = np.array(logs["time"])
     u = np.array(logs["command.outputs.out"]).reshape(length, -1)
     x = np.array(logs["plant.outputs.x"]).reshape(length, -1)
     y = np.array(logs["plant.outputs.y"]).reshape(length, -1)

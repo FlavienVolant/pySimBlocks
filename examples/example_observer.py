@@ -52,7 +52,7 @@ def main():
 
     # Extract logs
     length = len(logs["plant.outputs.x"])
-    t = np.arange(0, T, dt)
+    t = np.array(logs["time"])
     x_true = np.array(logs["plant.outputs.x"]).reshape(length, -1)
     x_hat = np.array(logs["observer.outputs.x_hat"]).reshape(length, -1)
 

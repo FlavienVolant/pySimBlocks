@@ -61,9 +61,9 @@ def main():
     # 5. Extract logged data
     # -------------------------------------------------------
     length = len(logs["u.outputs.out"])
+    t = np.array(logs["time"])
     u = np.array(logs["u.outputs.out"]).reshape(length, -1)
     x = np.array(logs["delay.outputs.out"]).reshape(length, -1)
-    t = np.arange(0, x.shape[0]) * dt
 
     print(f"Time: \n{t.flatten()}")
     print(f"u: \n{u.flatten()}")

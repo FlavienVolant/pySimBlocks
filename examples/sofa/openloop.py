@@ -1,5 +1,5 @@
 import os
-import numpy
+import numpy as np
 import matplotlib.pyplot as plt
 
 from pySimBlocks import Model, Simulator
@@ -49,13 +49,11 @@ def main():
     )
 
     # --- Inspect / print some results ---
-    t = numpy.arange(0, T, dt)
-    length = min(len(t), len(logs["sofa_finger.outputs.tip"]))
-    t = t[:length]
-    u = numpy.array(logs["step.outputs.out"]).reshape(length, -1)
-    tip_positions = numpy.array(logs["sofa_finger.outputs.tip"]).reshape(length, -1)
+    length = len(logs["sofa_finger.outputs.tip"])
 
-    print("Recorded tip positions:", tip_positions.shape)
+    t = np.array(logs["time"])
+    u = np.array(logs["step.outputs.out"]).reshape(length, -1)
+    tip_positions = np.array(logs["sofa_finger.outputs.tip"]).reshape(length, -1)
 
     plt.figure()
     for i in range(3):

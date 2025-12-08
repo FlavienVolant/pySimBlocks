@@ -1,17 +1,17 @@
 import os
-import numpy
+import numpy as np
 import matplotlib.pyplot as plt
 
 from pySimBlocks import Model, Simulator
 from pySimBlocks.blocks.systems import SofaSystem
 from pySimBlocks.blocks.sources import Step
-from pySimBlocks.blocks.operators import Gain, Sum, DiscreteIntegrator
+from pySimBlocks.blocks.operators import Sum
+from pySimBlocks.blocks.controllers import Pid
 
 
 def main():
 
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'finger', 'Finger.py')
-
 
     # --- Create Blocks ---
     step = Step(
@@ -21,11 +21,8 @@ def main():
         start_time=0.4,
     )
 
-    kp = Gain(name="kp", gain=0.5)
-    ki = Gain(name="ki", gain=0.8)
     error = Sum(name="error", num_inputs=2, signs=[1, -1])
-    sum = Sum(name="sum", num_inputs=2, signs=[1, 1])
-    integrator = DiscreteIntegrator(name="integrator", initial_state=[[0.0]])
+    pid = Pid("pid", Kp=0.3, Ki=0.8, Kd=0.000)
 
     sofa_block = SofaSystem(
         name="sofa_finger",
@@ -36,17 +33,13 @@ def main():
 
     # --- Build the model ---
     model = Model(name="sofa_finger_model")
-    for block in [step, kp, ki, error, sum, integrator, sofa_block]:
+    for block in [step, error, pid, sofa_block]:
         model.add_block(block)
 
     model.connect("step", "out", "error", "in1")
     model.connect("sofa_finger", "measure", "error", "in2")
-    model.connect("error", "out", "kp", "in")
-    model.connect("error", "out", "integrator", "in")
-    model.connect("integrator", "out", "ki", "in")
-    model.connect("kp", "out", "sum", "in1")
-    model.connect("ki", "out", "sum", "in2")
-    model.connect("sum", "out", "sofa_finger", "cable")
+    model.connect("error", "out", "pid", "e")
+    model.connect("pid", "u", "sofa_finger", "cable")
 
 
     # --- Create the simulator ---
@@ -60,19 +53,17 @@ def main():
         variables_to_log=[
             "step.outputs.out",
             "sofa_finger.outputs.measure",
-            "sum.outputs.out"
+            "pid.outputs.u"
         ],
     )
 
     # --- Inspect / print some results ---
-    t = numpy.arange(0, T, dt)
-    length = min(len(t), len(logs["sofa_finger.outputs.measure"]))
-    t = t[:length]
-    r = numpy.array(logs["step.outputs.out"]).reshape(length, -1)
-    u = numpy.array(logs["sum.outputs.out"]).reshape(length, -1)
-    y = numpy.array(logs["sofa_finger.outputs.measure"]).reshape(length, -1)
+    length = len(logs["step.outputs.out"])
 
-    print("Recorded tip positions:", y.shape)
+    t = np.array(logs["time"])
+    r = np.array(logs["step.outputs.out"]).reshape(length, -1)
+    y = np.array(logs["sofa_finger.outputs.measure"]).reshape(length, -1)
+    u = np.array(logs["pid.outputs.u"]).reshape(length, -1)
 
     plt.figure()
     plt.step(t, r, 'r--', label="Reference")
