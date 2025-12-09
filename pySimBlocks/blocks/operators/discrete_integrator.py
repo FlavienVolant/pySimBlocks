@@ -41,8 +41,6 @@ class DiscreteIntegrator(Block):
             Current integrated state x[k].
     """
 
-    direct_feedthrough = False
-
     def __init__(self,
         name: str,
         initial_state=None,
@@ -58,6 +56,9 @@ class DiscreteIntegrator(Block):
                 f"[{self.name}] Unsupported method '{method}'. "
                 f"Allowed: 'euler forward', 'euler backward'."
             )
+
+        if self.method == "euler forward":
+            self.direct_feedthrough = False
 
         # --------------------------- ports
         self.inputs["in"] = None
@@ -82,7 +83,7 @@ class DiscreteIntegrator(Block):
             self.state["x"] = None
 
         self.next_state["x"] = None
-        self._dt = 0.0   # for backward Euler
+        self._dt = 1.0   # for backward Euler
 
 
     # ------------------------------------------------------------------
@@ -115,11 +116,23 @@ class DiscreteIntegrator(Block):
             self.outputs["out"] = y
             return
 
-        self.outputs["out"] = x
+        if self.method == "euler forward":
+            self.outputs["out"] = x
+
+        elif self.method == "euler backward":
+            u = self.inputs["in"]
+            if u is None:
+                raise RuntimeError(f"[{self.name}] Missing input for backward Euler.")
+            u = np.asarray(u).reshape(-1, 1)
+            self.outputs["out"] = x + self._dt * u
+
+
 
 
     # ------------------------------------------------------------------
     def state_update(self, t, dt):
+        self._dt = dt
+
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input not set during state_update.")

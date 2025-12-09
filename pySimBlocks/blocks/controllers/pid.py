@@ -44,6 +44,12 @@ class Pid(Block):
         u_max: float | array-like (optional)
             Maximum output saturation (scalar). (Default: no saturation.)
 
+        integration_method: str (optional)
+            Integration method. (default = 'euler forward')
+            Supported:
+                - 'euler forward'
+                - 'euler backward'
+
     Inputs:
         e: array (1,1)
             Error signal.
@@ -58,7 +64,8 @@ class Pid(Block):
     def __init__(self,
                  name: str,
                  Kp=0.0, Ki=0.0, Kd=0.0,
-                 u_min=None, u_max=None):
+                 u_min=None, u_max=None,
+                 integration_method:str = 'euler forward'):
 
         super().__init__(name)
 
@@ -87,6 +94,17 @@ class Pid(Block):
                 raise ValueError(
                     f"[{self.name}] u_min ({self.u_min}) must be <= u_max ({self.u_max})."
                 )
+
+        # ---------------------------------
+        # Validate method
+        # ---------------------------------
+        self.integration_method = integration_method.lower()
+        allowed = ("euler forward", "euler backward")
+        if self.integration_method not in allowed:
+            raise ValueError(
+                f"[{self.name}] Unsupported method '{self.integration_method}'. "
+                f"Allowed: {allowed}"
+            )
 
         # -------------------------------
         # 3) Declare ports
@@ -172,7 +190,11 @@ class Pid(Block):
 
         # P, I, D terms
         P = self.Kp * e
-        I = x_i
+        if self.integration_method == "euler forward":
+            I = x_i
+        elif self.integration_method == "euler backward":
+            I = x_i + self.Ki * e * self._dt
+
         D = self.Kd * (e - e_prev) / self._dt
 
         u = P + I + D
@@ -192,7 +214,10 @@ class Pid(Block):
         e = np.asarray(self.inputs["e"]).reshape(1,1)
 
         # Integrator update
-        x_i_next = self.state["x_i"] + self.Ki * e * dt
+        if self.integration_method == "euler forward":
+            x_i_next = self.state["x_i"] + self.Ki * e * dt
+        elif self.integration_method == "euler backward":
+            x_i_next = self.outputs["u"] - (self.Kp * e + self.Kd * (e - self.state["e_prev"]) / dt)
 
         # Anti-windup: clamp integral state
         if self.u_min is not None:
