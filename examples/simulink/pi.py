@@ -53,7 +53,7 @@ def block_sim(A, B, C, Kp, Ki, T, dt):
     ref = Step("ref", start_time=1., value_before=0., value_after=1.)
     motor = LinearStateSpace("motor", A, B, C)
     error = Sum("error", signs=[+1, -1])
-    pid = Pid("pid", Kp=Kp, Ki=Ki)
+    pid = Pid("pid", Kp=Kp, Ki=Ki, controller="PI")
 
     blocks = [ref, error, pid, motor]
 
