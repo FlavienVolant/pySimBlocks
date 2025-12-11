@@ -1,0 +1,56 @@
+controllers:
+  pid:
+    class: Pid
+    module: pySimBlocks.blocks.controllers.pid
+  state_feedback:
+    class: StateFeedback
+    module: pySimBlocks.blocks.controllers.state_feedback
+observers:
+  luenberger:
+    class: Luenberger
+    module: pySimBlocks.blocks.observers.luenberger
+operators:
+  delay:
+    class: Delay
+    module: pySimBlocks.blocks.operators.delay
+  discrete_derivator:
+    class: DiscreteDerivator
+    module: pySimBlocks.blocks.operators.discrete_derivator
+  discrete_integrator:
+    class: DiscreteIntegrator
+    module: pySimBlocks.blocks.operators.discrete_integrator
+  gain:
+    class: Gain
+    module: pySimBlocks.blocks.operators.gain
+  mux:
+    class: Mux
+    module: pySimBlocks.blocks.operators.mux
+  sum:
+    class: Sum
+    module: pySimBlocks.blocks.operators.sum
+sources:
+  constant:
+    class: Constant
+    module: pySimBlocks.blocks.sources.constant
+  ramp:
+    class: Ramp
+    module: pySimBlocks.blocks.sources.ramp
+  sinusoidal:
+    class: Sinusoidal
+    module: pySimBlocks.blocks.sources.sinusoidal
+  step:
+    class: Step
+    module: pySimBlocks.blocks.sources.step
+  white_noise:
+    class: WhiteNoise
+    module: pySimBlocks.blocks.sources.white_noise
+systems:
+  linear_state_space:
+    class: LinearStateSpace
+    module: pySimBlocks.blocks.systems.linear_state_space
+  sofa_exchange_i_o:
+    class: SofaExchangeIO
+    module: pySimBlocks.blocks.systems.sofa.sofa_exchange_i_o
+  sofa_plant:
+    class: SofaPlant
+    module: pySimBlocks.blocks.systems.sofa.sofa_plant

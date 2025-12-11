@@ -1,8 +1,8 @@
-from model import sim, T, dt
 import numpy as np
 import matplotlib.pyplot as plt
+from model import simulator, T, dt
 
-logs = sim.run(T=T, variables_to_log=[
+logs = simulator.run(T=T, variables_to_log=[
     'delay.outputs.out',
     'ref.outputs.out',
     'plant.outputs.x',

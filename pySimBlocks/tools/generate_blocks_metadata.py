@@ -5,11 +5,13 @@ from pySimBlocks.tools.generate_blocks_index import generate_blocks_index
 def generate_blocks_metadata():
     print("=== Generating pySimBlocks metadata ===")
 
+    # Generate index (class names only)
+    generate_blocks_index()
+
     # Generate registry (full metadata)
     generate_registry()
 
-    # Generate index (class names only)
-    generate_blocks_index()
+
 
     print("=== Metadata generation complete ===")
 

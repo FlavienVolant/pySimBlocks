@@ -17,7 +17,7 @@ class FingerController(SofaControllerGui):
         self.mo = mo
         self.actuator = actuator
         self.tip_index = tip_index
-        self.verbose = True
+        self.verbose = verbose
 
         # Inputs & outputs dictionaries A METTRE AVANT SETUP_SIM
         self.inputs = { "cable": None }
@@ -78,9 +78,6 @@ class FingerController(SofaControllerGui):
     # ========================================================
     # Optional function
     # ========================================================
-    def print_logs(self):
-
-
     def save(self):
         if np.isclose(self.sim.logs["time"][-1], 5.):
             logs = self.sim.logs

@@ -33,7 +33,7 @@ def render_run_sim(param_str, model_str, yaml_data):
             exec(model_clean, env, env)
 
 
-            sim = env["sim"]
+            sim = env["simulator"]
             T = yaml_data["simulation"]["T"]
 
             logs = sim.run(T=T, variables_to_log=yaml_data["simulation"].get("log", []))

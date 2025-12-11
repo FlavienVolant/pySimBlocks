@@ -1,12 +1,10 @@
-import numpy as np
-# Auto imports
-from pySimBlocks.blocks.operators import Delay
-from pySimBlocks.blocks.operators import Gain
-from pySimBlocks.blocks.operators import Sum
-from pySimBlocks.blocks.sources import Step
-from pySimBlocks.blocks.systems import LinearStateSpace
-from pySimBlocks import Model, Simulator
 from parameters_auto import *
+from pySimBlocks import Model, Simulator
+from pySimBlocks.blocks.operators.delay import Delay
+from pySimBlocks.blocks.operators.gain import Gain
+from pySimBlocks.blocks.operators.sum import Sum
+from pySimBlocks.blocks.sources.step import Step
+from pySimBlocks.blocks.systems.linear_state_space import LinearStateSpace
 
 model = Model('auto_model')
 
@@ -35,4 +33,4 @@ model.connect('sum', 'out', 'delay', 'in')
 model.connect('delay', 'out', 'A', 'in')
 model.connect('ref', 'out', 'plant', 'u')
 
-sim = Simulator(model, dt=dt)
+simulator = Simulator(model, dt=dt)

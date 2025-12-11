@@ -59,6 +59,9 @@ discrete_integrator:
   - name: method
     optional: true
     type: str
+  - name: Supported
+    optional: false
+    type: ''
 gain:
   category: operators
   inputs:
@@ -130,10 +133,12 @@ mux:
   inputs:
     dynamic: indexed
     pattern: in{}
+    ports: []
   outputs:
     dynamic: false
     ports:
     - out
+    - Notes
   parameters:
   - name: num_inputs
     optional: true
@@ -170,6 +175,9 @@ pid:
   - name: integration_method
     optional: true
     type: str
+  - name: Supported
+    optional: false
+    type: ''
 ramp:
   category: sources
   inputs:
@@ -211,14 +219,33 @@ sinusoidal:
   - name: phase
     optional: true
     type: float | array-like (n,) | array (n,1)
-sofa_system:
+sofa_exchange_i_o:
   category: systems
   inputs:
     dynamic: specified
     parameter: input_keys
+    ports: []
   outputs:
     dynamic: specified
     parameter: output_keys
+    ports: []
+  parameters:
+  - name: input_keys
+    optional: false
+    type: list of str
+  - name: output_keys
+    optional: false
+    type: list of str
+sofa_plant:
+  category: systems
+  inputs:
+    dynamic: specified
+    parameter: input_keys
+    ports: []
+  outputs:
+    dynamic: specified
+    parameter: output_keys
+    ports: []
   parameters:
   - name: scene_file
     optional: false
@@ -271,6 +298,7 @@ sum:
   inputs:
     dynamic: indexed
     pattern: in{}
+    ports: []
   outputs:
     dynamic: false
     ports:

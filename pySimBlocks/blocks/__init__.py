@@ -2,7 +2,7 @@ from pySimBlocks.blocks.controllers import Pid, StateFeedback
 from pySimBlocks.blocks.observers import Luenberger
 from pySimBlocks.blocks.operators import Delay, DiscreteDerivator, DiscreteIntegrator, Gain, Mux, Sum
 from pySimBlocks.blocks.sources import Constant, Ramp, Step, Sinusoidal, WhiteNoise
-from pySimBlocks.blocks.systems import LinearStateSpace, SofaExchangeIO, SofaPlant
+from pySimBlocks.blocks.systems import LinearStateSpace
 
 __all__ = [
     "Pid",
@@ -24,6 +24,4 @@ __all__ = [
     "WhiteNoise",
 
     "LinearStateSpace",
-    "SofaExchangeIO",
-    "SofaPlant",
 ]

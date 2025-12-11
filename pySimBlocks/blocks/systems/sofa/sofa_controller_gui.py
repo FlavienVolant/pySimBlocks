@@ -92,6 +92,7 @@ class SofaControllerGui(SofaControllerBase):
         Optional: save logged data at the end of the simulation.
         To be implented with saving condition.
         """
+        pass
 
     # ----------------------------------------------------------------------
     # SOFA event callback ---------------------------------------------------

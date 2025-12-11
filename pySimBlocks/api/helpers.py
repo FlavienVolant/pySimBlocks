@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 path_dir = os.path.dirname(os.path.abspath(__file__))
-REGISTRY_PATH = "pySim_blocks_registry.yaml"
+REGISTRY_PATH = "pySimBlocks_blocks_registry.yaml"
 REGISTRY_PATH = os.path.join(path_dir, REGISTRY_PATH)
 
 def load_registry():

@@ -1,194 +1,219 @@
 import os
+import ast
 import re
 import yaml
-import importlib
-import inspect
+from pathlib import Path
 
 
-# ------------------------------------------------------------
-# Utilities for docstring parsing
-# ------------------------------------------------------------
+# ============================================================
+# 1) DOCSTRING PARSING HELPERS
+# ============================================================
 
 SECTION_PATTERN = re.compile(r"^(Parameters:|Inputs:|Outputs:)$", re.MULTILINE)
-
-ITEM_PATTERN = re.compile(
-    r"^\s*([a-zA-Z0-9_]+)\s*:\s*([^\n]+)$"
-)
+ITEM_PATTERN = re.compile(r"^\s*([a-zA-Z0-9_]+)\s*:\s*(.*)$")
 
 
 def extract_sections(doc):
-    """
-    Split the docstring into sections:
-        Parameters:
-        Inputs:
-        Outputs:
-    Return:
-        dict { "Parameters": str, "Inputs": str, "Outputs": str }
-    """
+    """Split docstring into Parameters / Inputs / Outputs sections."""
     parts = SECTION_PATTERN.split(doc)
-    # parts = ["text before", "SectionName", "text", "SectionName", "text", ...]
-
     sections = {"Parameters": "", "Inputs": "", "Outputs": ""}
 
     for i in range(1, len(parts), 2):
         title = parts[i].replace(":", "")
-        content = parts[i+1]
-        sections[title] = content.strip()
+        sections[title] = parts[i + 1].strip()
 
     return sections
 
 
-def parse_items(section_text):
-    """
-    Parse items inside a section such as:
-
-        gain: float
-            Gain value
-        x0: array (n,1) (optional)
-
-    Return list of dicts:
-        [
-            {"name": "gain", "type": "float", "optional": False},
-            {"name": "x0", "type": "array (n,1)", "optional": True}
-        ]
-    """
-    items = []
-
-    lines = section_text.split("\n")
-    for line in lines:
+def parse_parameters(section_text):
+    """Extract block parameters with type and optional flag."""
+    params = []
+    for line in section_text.split("\n"):
         m = ITEM_PATTERN.match(line)
         if not m:
             continue
 
         name = m.group(1).strip()
         type_str = m.group(2).strip()
-
         optional = "(optional)" in type_str
+
         type_str = type_str.replace("(optional)", "").strip()
 
-        items.append({
+        params.append({
             "name": name,
-            "type": type_str,
             "optional": optional,
+            "type": type_str
         })
 
-    return items
+    return params
 
 
-def detect_ports(section_text, is_input=True):
-    """
-    Detect static, dynamic-indexed, or dynamic-specified ports from docstring section.
-    """
-    # Extract lines
+def detect_ports(section_text):
+    """Detect static ports (list) or dynamic ones."""
     lines = section_text.split("\n")
 
-    # CASE 1 — Dynamic declarative (SOFA / FMU style)
-    # Example: "Dynamic — specified by input_keys"
-    for line in lines:
-        if "Dynamic" in line and "specified by" in line:
-            # retrieve which parameter controls the keys
-            # Example: specified by input_keys
-            m = re.search(r"specified by ([a-zA-Z0-9_]+)", line)
-            parameter = m.group(1) if m else None
+    # Case 1 – "Dynamic — specified by xxx"
+    for l in lines:
+        if "Dynamic" in l and "specified by" in l:
+            m = re.search(r"specified by ([a-zA-Z0-9_]+)", l)
             return {
                 "dynamic": "specified",
-                "parameter": parameter
+                "parameter": m.group(1) if m else None,
+                "ports": []
             }
 
-    # CASE 2 — Dynamic indexed ("in1, ..., inN")
-    for line in lines:
-        if "Dynamic" in line and "in1" in line and "inN" in line:
+    # Case 2 – "Dynamic — in1 ... inN"
+    for l in lines:
+        if "Dynamic" in l and "in1" in l and "inN" in l:
             return {
                 "dynamic": "indexed",
-                "pattern": "in{}"
+                "pattern": "in{}",
+                "ports": []
             }
 
-    # CASE 3 — Static ports ("x:", "r:", etc.)
-    items = parse_items(section_text)
+    # Case 3 – Static ports
+    if any("(none)" in l.lower() for l in lines):
+        return {"dynamic": False, "ports": []}
+
+    ports = []
+    for l in lines:
+        m = ITEM_PATTERN.match(l)
+        if m:
+            ports.append(m.group(1).strip())
+
     return {
         "dynamic": False,
-        "ports": [item["name"] for item in items]
+        "ports": ports
     }
 
-# ------------------------------------------------------------
-# Block discovery and import
-# ------------------------------------------------------------
 
-def discover_blocks(base_path):
+# ============================================================
+# 2) AST SCANNING
+# ============================================================
+def find_block_classes(filepath):
     """
-    Scan pySimBlocks/blocks and import each block class.
-    Return list of tuples:
-        (category, block_type, class_object)
+    Detect classes that inherit (directly or indirectly) from any class
+    whose name contains the substring 'Block'.
+    Works entirely from AST without importing anything.
     """
-    blocks = []
+    with open(filepath, "r", encoding="utf-8") as f:
+        source = f.read()
 
-    for category in os.listdir(base_path):
-        if category == "__pycache__":
-            continue
+    tree = ast.parse(source)
 
-        cat_dir = os.path.join(base_path, category)
-        if not os.path.isdir(cat_dir):
-            continue
+    # Step 1 — Build local inheritance map {class: [parents]}
+    class_parents = {}
 
-        for file in os.listdir(cat_dir):
-            if not file.endswith(".py") or file == "__init__.py":
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            parents = []
+            for base in node.bases:
+                if isinstance(base, ast.Name):
+                    parents.append(base.id)
+                elif isinstance(base, ast.Attribute):
+                    parents.append(base.attr)
+            class_parents[node.name] = parents
+
+    # Step 2 — Recursive check for "Block" ancestry
+    def is_block_class(cls):
+        to_visit = [cls]
+        visited = set()
+
+        while to_visit:
+            current = to_visit.pop()
+            if current in visited:
                 continue
+            visited.add(current)
 
-            block_type = file.replace(".py", "")
-            module_path = f"pySimBlocks.blocks.{category}.{block_type}"
+            # If class name contains "Block" → it is a block
+            if "block" in current.lower():
+                return True
 
-            try:
-                module = importlib.import_module(module_path)
-            except Exception as e:
-                print(f"Could not import {module_path}: {e}")
-                continue
+            # Explore parents
+            for parent in class_parents.get(current, []):
+                to_visit.append(parent)
 
-            # find the class that inherits from Block
-            for name, obj in inspect.getmembers(module, inspect.isclass):
-                if obj.__module__ != module_path:
-                    continue
-                if "Block" in [base.__name__ for base in inspect.getmro(obj)[1:]]:
-                    blocks.append((category, block_type, obj))
-                    break
+        return False
 
-    return blocks
+    # Step 3 — Return only block classes
+    result = []
+    for cls in class_parents:
+        if is_block_class(cls):
+            result.append({
+                "class_name": cls,
+                "doc": ast.get_docstring(
+                    next(n for n in ast.walk(tree)
+                         if isinstance(n, ast.ClassDef) and n.name == cls)
+                ) or ""
+            })
+
+    return result
 
 
-# ------------------------------------------------------------
-# Registry generation
-# ------------------------------------------------------------
 
-def generate_registry(output_path="pySim_blocks_registry.yaml"):
-    base_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "blocks")
-    output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "api", output_path)
+def iter_python_files(base_path):
+    """Recursive scan for .py files."""
+    for root, _, files in os.walk(base_path):
+        for fname in files:
+            if fname.endswith(".py") and fname != "__init__.py":
+                yield os.path.join(root, fname)
 
-    blocks = discover_blocks(base_path)
+
+# ============================================================
+# 3) REGISTRY GENERATION — EXACT FORMAT EXPECTED
+# ============================================================
+
+def generate_registry():
+    root = Path(__file__).resolve().parents[1]
+    blocks_dir = root / "blocks"
+    output_file = root / "api" / "pySimBlocks_blocks_registry.yaml"
+
 
     registry = {}
 
-    for category, block_type, cls in blocks:
-
-        doc = inspect.getdoc(cls)
-        if not doc:
+    # Loop over block categories
+    for category in os.listdir(blocks_dir):
+        cat_dir = blocks_dir / category
+        if not cat_dir.is_dir() or category == "__pycache__":
             continue
 
-        sections = extract_sections(doc)
+        # Scan recursively
+        for filepath in iter_python_files(cat_dir):
+            block_type = Path(filepath).stem.lower()
+            classes = find_block_classes(filepath)
 
-        params = parse_items(sections["Parameters"])
-        inputs = detect_ports(sections["Inputs"], is_input=True)
-        outputs = detect_ports(sections["Outputs"], is_input=False)
+            if not classes:
+                continue
 
-        params = [p for p in params if p["name"] != "name"]
+            # Only one class per block file (pySim convention)
+            cls = classes[0]
+            doc = cls["doc"].strip()
+            if not doc:
+                continue
 
-        registry[block_type] = {
-            "category": category,
-            "parameters": params,
-            "inputs": inputs,    # déjà une bonne structure
-            "outputs": outputs,
-        }
+            sections = extract_sections(doc)
 
-    # Write YAML
-    with open(output_path, "w") as f:
+            params  = parse_parameters(sections["Parameters"])
+            inputs  = detect_ports(sections["Inputs"])
+            outputs = detect_ports(sections["Outputs"])
+
+            # Remove name parameter
+            params = [p for p in params if p["name"] != "name"]
+
+            registry[block_type] = {
+                "category": category,
+                "inputs": inputs,
+                "outputs": outputs,
+                "parameters": params,
+            }
+
+    # Write final YAML
+    with open(output_file, "w") as f:
         yaml.dump(registry, f, sort_keys=True)
 
-    print(f"Registry successfully written to {output_path}")
+    print(f"[OK] Registry written to {output_file}")
+    return registry
+
+
+if __name__ == "__main__":
+    generate_registry()

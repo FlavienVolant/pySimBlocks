@@ -1,46 +1,98 @@
 import os
 import yaml
-import inspect
-import importlib
-from pySimBlocks.core.block import Block
+import ast
+from pathlib import Path
+
+def iter_python_files(base_path):
+    for root, _, files in os.walk(base_path):
+        for f in files:
+            if f.endswith(".py") and f != "__init__.py":
+                yield os.path.join(root, f)
 
 
-def generate_blocks_index(output_path="pySim_blocks_index.yaml"):
-    base_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "blocks")
-    output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "generate", output_path)
+def find_block_classes(filepath):
+    """Find all classes inheriting directly or indirectly from 'Block'."""
+    with open(filepath, "r", encoding="utf-8") as f:
+        source = f.read()
+
+    tree = ast.parse(source)
+
+    class_parents = {}
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            parents = []
+            for base in node.bases:
+                if isinstance(base, ast.Name):
+                    parents.append(base.id)
+                elif isinstance(base, ast.Attribute):
+                    parents.append(base.attr)
+            class_parents[node.name] = parents
+
+    def is_block_class(cls):
+        visited = set()
+        to_visit = [cls]
+
+        while to_visit:
+            current = to_visit.pop()
+            if current in visited:
+                continue
+            visited.add(current)
+
+            if "block" in current.lower():
+                return True
+
+            parents = class_parents.get(current, [])
+            to_visit.extend(parents)
+
+        return False
+
+    block_classes = []
+    for cls in class_parents:
+        if is_block_class(cls):
+            block_classes.append(cls)
+
+    return block_classes
+
+
+def generate_blocks_index():
+    blocks_dir = Path(__file__).resolve().parents[1] / "blocks"
+    output_path = Path(__file__).resolve().parents[1] / "generate" / "pySimBlocks_blocks_index.yaml"
 
     index = {}
 
-    # Loop over categories: sources/, operators/, systems/, etc.
-    for group in os.listdir(base_dir):
-        group_path = os.path.join(base_dir, group)
-        if not os.path.isdir(group_path) or group == "__pycache__":
+    for group in os.listdir(blocks_dir):
+        group_path = blocks_dir / group
+
+        if (
+            not group_path.is_dir()
+            or group.startswith("_")
+            or group.startswith(".")
+            or group == "__pycache__"
+        ):
             continue
 
-        index[group] = []
+        index[group] = {}
 
-        # Scan .py files
-        for file in os.listdir(group_path):
-            if not file.endswith(".py") or file == "__init__.py":
+        for filepath in iter_python_files(group_path):
+            classes = find_block_classes(filepath)
+            if not classes:
                 continue
 
-            type_name = file.replace(".py", "")
-            module_path = f"pySimBlocks.blocks.{group}.{type_name}"
+            file_stem = Path(filepath).stem  # snake_case name → key in YAML
 
-            try:
-                module = importlib.import_module(module_path)
-            except Exception:
-                continue
+            # Compute module path
+            rel_path = filepath.split("pySimBlocks")[-1].lstrip("/\\")
+            module_path = "pySimBlocks." + rel_path.replace("/", ".").replace("\\", ".").removesuffix(".py")
 
-            # Find class inheriting from Block
-            for name, obj in inspect.getmembers(module, inspect.isclass):
-                if obj.__module__ != module_path:
-                    continue
+            # Only one block class per file (pySimBlocks rule)
+            class_name = classes[0]
 
-                if Block in inspect.getmro(obj)[1:]:
-                    index[group].append(name)
+            index[group][file_stem] = {
+                "class": class_name,
+                "module": module_path
+            }
 
-    # Write YAML
     with open(output_path, "w") as f:
         yaml.dump(index, f, sort_keys=True)
 

@@ -28,13 +28,13 @@ blocks:
   num_inputs: 2
 - name: sofa
   from: systems
-  type: sofa_system
+  type: sofa_plant
   scene_file: /home/aalessan/Documents/Perso/code/pySimBlocks/examples/gui/sofa/finger/Finger.py
   input_keys: [cable]
   output_keys: [tip, measure]
 - name: sofa_ol
   from: systems
-  type: sofa_system
+  type: sofa_plant
   scene_file: /home/aalessan/Documents/Perso/code/pySimBlocks/examples/gui/sofa/finger/Finger.py
   input_keys: [cable]
   output_keys: [tip, measure]

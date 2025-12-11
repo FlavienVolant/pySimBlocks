@@ -42,8 +42,3 @@ class FingerController(SofaControllerBase):
 
         # Apply to actuator
         self.actuator.value = processed
-
-    def onAnimateBeginEvent(self, event):
-
-        self.get_outputs()
-        self.set_inputs()

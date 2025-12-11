@@ -1,8 +1,10 @@
-from model import sim, T, dt
 import numpy as np
 import matplotlib.pyplot as plt
+from pySimBlocks import Simulator
+from model import model, T, dt
 
-logs = sim.run(T=T, variables_to_log=[
+simulator = Simulator(model, dt=dt)
+logs = simulator.run(T=T, variables_to_log=[
     'step.outputs.out',
     'sofa.outputs.measure',
     'sum.outputs.out',
