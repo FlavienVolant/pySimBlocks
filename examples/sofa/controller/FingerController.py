@@ -5,10 +5,10 @@ from pySimBlocks import Model
 from pySimBlocks.blocks.sources import Step
 from pySimBlocks.blocks.operators import Sum
 from pySimBlocks.blocks.controllers import Pid
-from pySimBlocks.blocks.systems.sofa import SofaExchangeIO, SofaControllerGui
+from pySimBlocks.blocks.systems.sofa import SofaExchangeIO, SofaPysimBlocksController
 
 
-class FingerController(SofaControllerGui):
+class FingerController(SofaPysimBlocksController):
 
     def __init__(self, root, actuator, mo, tip_index=121, verbose=True, name="FingerController"):
         super().__init__(name=name)
@@ -22,10 +22,6 @@ class FingerController(SofaControllerGui):
         # Inputs & outputs dictionaries A METTRE AVANT SETUP_SIM
         self.inputs = { "cable": None }
         self.outputs = { "tip": None, "measure": None }
-
-        # --- Create the simulator ---
-        self.build_model()
-        self.setup_sim(self.root.dt.value)
 
     # ========================================================
     # Mandatory function
@@ -55,6 +51,10 @@ class FingerController(SofaControllerGui):
         # Apply to actuator
         self.actuator.value = processed
 
+
+    # ========================================================
+    # Optional function
+    # ========================================================
     def build_model(self):
         # pysimblock controller:
         self.step = Step(name="step", value_before=[[0.0]], value_after=[[8.0]], start_time=0.4)
@@ -75,9 +75,7 @@ class FingerController(SofaControllerGui):
 
         self.variables_to_log = ["step.outputs.out", "pid.outputs.u", "sofa_io.outputs.measure"]
 
-    # ========================================================
-    # Optional function
-    # ========================================================
+
     def save(self):
         if np.isclose(self.sim.logs["time"][-1], 5.):
             logs = self.sim.logs

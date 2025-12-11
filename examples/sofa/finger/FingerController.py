@@ -1,10 +1,10 @@
 import numpy as np
-from pySimBlocks.blocks.systems.sofa import SofaControllerBase
+from pySimBlocks.blocks.systems.sofa import SofaPysimBlocksController
 
 import Sofa
 
 
-class FingerController(SofaControllerBase):
+class FingerController(SofaPysimBlocksController):
 
     def __init__(self, actuator, mo, tip_index=121, name="FingerController"):
         super().__init__(name=name)

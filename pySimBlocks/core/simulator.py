@@ -136,6 +136,12 @@ class Simulator:
             self.step()
             self._log(variables_to_log)
 
+            if self.verbose:
+                print(f"\nStep: {k}/{N}")
+                for variable in variables_to_log:
+                    print(f"{variable}: {self.logs[variable][-1]}")
+
+
 
         for block in self.model.blocks.values():
             try:

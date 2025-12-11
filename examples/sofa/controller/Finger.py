@@ -4,11 +4,13 @@ import sys
 import numpy as np
 import Sofa
 
+from FingerController import FingerController
+
 dir_path = os.path.dirname(os.path.abspath(__file__))
 path = os.path.join(dir_path, 'mesh')
 
 
-def createScene(rootNode, gui=False):
+def createScene(rootNode):
 
     rootNode.addObject("RequiredPlugin", name='SoftRobots')
     rootNode.addObject("RequiredPlugin", name='SofaPython3')
@@ -92,12 +94,7 @@ def createScene(rootNode, gui=False):
                     pullPoint=[0.0, 12.5, 2.5])
     cable.addObject('BarycentricMapping')
 
-    if not gui:
-        from controller_pysim import FingerController
-        controller = FingerController(actuator=cable.aCableActuator, mo=finger.tetras)
-    else:
-        from controller_gui import FingerController
-        controller = FingerController(root=rootNode, actuator=cable.aCableActuator, mo=finger.tetras)
+    controller = FingerController(root=rootNode, actuator=cable.aCableActuator, mo=finger.tetras)
 
     finger.addObject(controller)
 

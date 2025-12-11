@@ -21,6 +21,7 @@ def sofa_worker(conn, scene_file, input_keys, output_keys):
 
     root = Sofa.Core.Node("root")
     root, controller = mod.createScene(root)
+    controller.SOFA_MASTER = False
     Sofa.Simulation.initRoot(root)
 
     dt = float(root.dt.value)
