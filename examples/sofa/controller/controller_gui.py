@@ -2,11 +2,11 @@ import numpy as np
 import Sofa
 
 from pySimBlocks import Model
-from pySimBlocks.blocks.systems import SofaExchangeIO
 from pySimBlocks.blocks.sources import Step
 from pySimBlocks.blocks.operators import Sum
 from pySimBlocks.blocks.controllers import Pid
-from pySimBlocks.blocks.systems.sofa import SofaControllerGui
+from pySimBlocks.blocks.systems.sofa import SofaExchangeIO, SofaControllerGui
+
 
 class FingerController(SofaControllerGui):
 

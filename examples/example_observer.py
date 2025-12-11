@@ -2,7 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pySimBlocks import Model, Simulator
-from pySimBlocks.blocks import Constant, LinearStateSpace, Luenberger
+from pySimBlocks.blocks.sources import Constant
+from pySimBlocks.blocks.systems import LinearStateSpace
+from pySimBlocks.blocks.observers import Luenberger
 
 
 def main():

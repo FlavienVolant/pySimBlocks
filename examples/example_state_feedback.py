@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 import control as ct
 
 from pySimBlocks import Model, Simulator
-from pySimBlocks.blocks import  Step, StateFeedback, LinearStateSpace, Gain
+from pySimBlocks.blocks.sources import  Step
+from pySimBlocks.blocks.controllers import  StateFeedback
+from pySimBlocks.blocks.systems import  LinearStateSpace
 
 
 def main():

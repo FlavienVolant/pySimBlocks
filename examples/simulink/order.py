@@ -36,7 +36,7 @@ def manual_sim(A, B, C, Kp, Ki, Kd, T, dt):
     model.connect("sum", "out", "motor", "u")
 
     # Simulator
-    sim = Simulator(model, dt, verbose=False)
+    sim = Simulator(model, dt, verbose=True)
     sim.initialize()
 
 

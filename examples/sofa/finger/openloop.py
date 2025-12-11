@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pySimBlocks import Model, Simulator
-from pySimBlocks.blocks.systems import SofaPlant
+from pySimBlocks.blocks.systems.sofa import SofaPlant
 from pySimBlocks.blocks.sources import Step
 
 

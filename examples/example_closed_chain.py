@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pySimBlocks import Model, Simulator
-from pySimBlocks.blocks import Step, Gain, Sum, Delay
+from pySimBlocks.blocks.sources import Step
+from pySimBlocks.blocks.operators import Gain, Sum, Delay
 
 
 def main():

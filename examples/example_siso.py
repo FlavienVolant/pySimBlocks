@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pySimBlocks import Model, Simulator
-from pySimBlocks.blocks import  Step, LinearStateSpace
+from pySimBlocks.blocks.sources import Step
+from pySimBlocks.blocks.systems import LinearStateSpace
 
 def main():
     # --- 1. Define system matrices (SISO example) ---

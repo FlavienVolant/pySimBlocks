@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from pySimBlocks import Model, Simulator
 from pySimBlocks.blocks.sources import Step
 from pySimBlocks.blocks.systems import LinearStateSpace
-from pySimBlocks.blocks.operators import Gain, Sum, DiscreteIntegrator
 
 
 def main():
