@@ -1,9 +1,8 @@
 from parameters_auto import *
-from pySimBlocks import Model
+from pySimBlocks import Model, Simulator
 from pySimBlocks.blocks.operators.discrete_integrator import DiscreteIntegrator
 from pySimBlocks.blocks.operators.gain import Gain
 from pySimBlocks.blocks.operators.sum import Sum
-from pySimBlocks.blocks.sources.constant import Constant
 from pySimBlocks.blocks.sources.step import Step
 from pySimBlocks.blocks.systems.sofa.sofa_plant import SofaPlant
 
@@ -30,12 +29,6 @@ model.add_block(sum)
 sofa = SofaPlant('sofa', scene_file=sofa_scene_file, input_keys=sofa_input_keys, output_keys=sofa_output_keys)
 model.add_block(sofa)
 
-sofa_ol = SofaPlant('sofa_ol', scene_file=sofa_ol_scene_file, input_keys=sofa_ol_input_keys, output_keys=sofa_ol_output_keys)
-model.add_block(sofa_ol)
-
-constant = Constant('constant', value=constant_value)
-model.add_block(constant)
-
 model.connect('step', 'out', 'error', 'in1')
 model.connect('error', 'out', 'Kp', 'in')
 model.connect('error', 'out', 'discrete_integrator', 'in')
@@ -44,4 +37,5 @@ model.connect('discrete_integrator', 'out', 'Ki', 'in')
 model.connect('Ki', 'out', 'sum', 'in2')
 model.connect('sum', 'out', 'sofa', 'cable')
 model.connect('sofa', 'measure', 'error', 'in2')
-model.connect('constant', 'out', 'sofa_ol', 'cable')
+
+simulator = Simulator(model, dt=dt)

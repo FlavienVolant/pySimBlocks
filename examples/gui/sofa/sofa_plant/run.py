@@ -1,14 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from pySimBlocks import Simulator
-from model import model, T, dt
+from model import simulator, T, dt
 
-simulator = Simulator(model, dt=dt)
 logs = simulator.run(T=T, variables_to_log=[
     'step.outputs.out',
     'sofa.outputs.measure',
     'sum.outputs.out',
-    'sofa_ol.outputs.measure',
 ])
 print('Simulation complete.')
 
@@ -35,19 +32,6 @@ for i in range(sum_outputs_out.shape[1]):
 plt.xlabel('Time [s]')
 plt.ylabel('Values')
 plt.title('Command')
-plt.legend()
-plt.grid()
-
-plt.figure()
-sofa_outputs_measure = np.array(logs['sofa.outputs.measure']).reshape(length, -1)
-for i in range(sofa_outputs_measure.shape[1]):
-    plt.step(time, sofa_outputs_measure[:, i], where='post', label='sofa_outputs_measure'+str(i))
-sofa_ol_outputs_measure = np.array(logs['sofa_ol.outputs.measure']).reshape(length, -1)
-for i in range(sofa_ol_outputs_measure.shape[1]):
-    plt.step(time, sofa_ol_outputs_measure[:, i], where='post', label='sofa_ol_outputs_measure'+str(i))
-plt.xlabel('Time [s]')
-plt.ylabel('Values')
-plt.title('OL vs CL')
 plt.legend()
 plt.grid()
 
