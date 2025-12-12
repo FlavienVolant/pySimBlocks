@@ -219,6 +219,15 @@ sinusoidal:
   - name: phase
     optional: true
     type: float | array-like (n,) | array (n,1)
+sofa_controller:
+  category: systems
+  inputs:
+    dynamic: false
+    ports: []
+  outputs:
+    dynamic: false
+    ports: []
+  parameters: []
 sofa_exchange_i_o:
   category: systems
   inputs:
@@ -236,6 +245,9 @@ sofa_exchange_i_o:
   - name: output_keys
     optional: false
     type: list of str
+  - name: controller_file
+    optional: false
+    type: str
 sofa_plant:
   category: systems
   inputs:

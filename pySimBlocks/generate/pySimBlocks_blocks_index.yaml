@@ -48,6 +48,9 @@ systems:
   linear_state_space:
     class: LinearStateSpace
     module: pySimBlocks.blocks.systems.linear_state_space
+  sofa_controller:
+    class: SofaPysimBlocksController
+    module: pySimBlocks.blocks.systems.sofa.sofa_controller
   sofa_exchange_i_o:
     class: SofaExchangeIO
     module: pySimBlocks.blocks.systems.sofa.sofa_exchange_i_o

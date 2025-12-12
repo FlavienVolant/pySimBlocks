@@ -1,15 +1,20 @@
 import re
+import inspect
 from pathlib import Path
+from multiprocessing import Process, Pipe
+import importlib.util
+
 from pySimBlocks.generate.generate_parameters import generate_parameters
 from pySimBlocks.generate.generate_model import resolve_block_import
 
-
-# ============================================================================
-# 1. Transform SofaPlant → SofaExchangeIO for SOFA-side controller
-# ============================================================================
-
-def transform_block_for_sofa(block):
-    """Convert SofaPlant block into SofaExchangeIO for controller generation."""
+# =============================================================================
+#
+# =============================================================================
+def normalize_block_for_controller(block):
+    """
+    Force SofaPlant → SofaExchangeIO for controller generation.
+    Both share 'input_keys' and 'output_keys'.
+    """
     if block["type"].lower() == "sofa_plant":
         return {
             "name": block["name"],
@@ -21,17 +26,68 @@ def transform_block_for_sofa(block):
     return block
 
 
-# ============================================================================
-# 2. Pattern to remove ANY existing build_model() implementation
-# ============================================================================
 
-def remove_old_build_model(text):
+def _load_scene_in_subprocess(scene_path, conn):
+    """
+    Load Sofa Scene in subprocess, get path file from controller.
+    """
+    try:
+
+        spec = importlib.util.spec_from_file_location("scene", scene_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+
+        import Sofa
+        root = Sofa.Core.Node("root")
+
+        # Appel createScene() → doit retourner root, controller
+        out = mod.createScene(root)
+        if not isinstance(out, (list, tuple)) or len(out) < 2:
+            conn.send(None)
+            return
+
+        controller = out[1]
+        controller_file = inspect.getsourcefile(controller.__class__)
+
+        conn.send(controller_file)
+
+    except Exception:
+        conn.send(None)
+
+    finally:
+        conn.close()
+
+
+def detect_controller_file_from_scene(scene_file):
+    """
+    Automatically get controller path from scene.
+    """
+    parent_conn, child_conn = Pipe()
+
+    p = Process(target=_load_scene_in_subprocess, args=(scene_file, child_conn))
+    p.start()
+    controller_path = parent_conn.recv()
+    p.join()
+
+    if controller_path is None:
+        raise RuntimeError(
+            f"Unable to determine controller file from scene {scene_file}. "
+            "Ensure createScene(root) returns (root, controller)."
+        )
+
+    return Path(controller_path)
+
+
+# =============================================================================
+#
+# =============================================================================
+def remove_build_model_function(text):
     lines = text.split("\n")
 
     start = None
     indent = None
 
-    # 1) trouver la ligne def build_model
+    # Trouver la ligne def build_model
     for i, line in enumerate(lines):
         stripped = line.lstrip()
         if stripped.startswith("def build_model"):
@@ -40,41 +96,33 @@ def remove_old_build_model(text):
             break
 
     if start is None:
-        # no function found
         return text
 
-    # 2) trouver la fin du bloc en utilisant l’indentation
+    # Trouver la fin du bloc
     end = start + 1
     for j in range(start + 1, len(lines)):
         line = lines[j]
-        # ligne vide → fait partie du bloc
         if not line.strip():
             continue
         current_indent = len(line) - len(line.lstrip())
-
-        # fin du bloc lorsque l’indentation revient au même niveau ou moins
         if current_indent <= indent:
             end = j
             break
     else:
-        # si on n'a jamais trouvé de fin, alors fin du fichier
         end = len(lines)
 
-    # 3) supprimer toutes les lignes de start à end
-    new_lines = lines[:start] + lines[end:]
+    # Supprimer lignes vides ou indentées restant après la fonction
+    while end < len(lines) and (not lines[end].strip() or len(lines[end]) - len(lines[end].lstrip()) > indent):
+        end += 1
 
+    new_lines = lines[:start] + lines[end:]
     return "\n".join(new_lines)
 
 
-
-# ============================================================================
-# 3. Build code for block instantiation (CamelCase class name included)
-# ============================================================================
-
+# =============================================================================
+#
+# =============================================================================
 def build_instantiation_line(block):
-    """
-    Produce: self.pid = Pid("pid", Kp=pid_Kp, Ki=pid_Ki)
-    """
     name = block["name"]
     module, class_name = resolve_block_import(block["from"], block["type"])
 
@@ -87,26 +135,20 @@ def build_instantiation_line(block):
     if params:
         pstr = ", ".join(f"{k}={v}" for k, v in params.items())
         return f'self.{name} = {class_name}("{name}", {pstr})'
-    else:
-        return f'self.{name} = {class_name}("{name}")'
 
+    return f'self.{name} = {class_name}("{name}")'
 
-# ============================================================================
-# 4. Build final build_model() method code
-# ============================================================================
 
 def generate_build_model_code(blocks, connections, logs):
-    lines = []
     indent = " " * 4
+    lines = []
 
     lines.append(f"{indent}def build_model(self):")
     lines.append("")
 
-    # Instantiation
     for blk in blocks:
         lines.append(f"{indent*2}{build_instantiation_line(blk)}")
 
-    # Create model
     lines.append("")
     lines.append(f'{indent*2}self.model = Model("sofa_autogenerated_controller")')
     lines.append(f"{indent*2}for blk in [")
@@ -118,14 +160,12 @@ def generate_build_model_code(blocks, connections, logs):
     lines.append(f"{indent*3}self.model.add_block(blk)")
     lines.append("")
 
-    # Connections
     lines.append(f"{indent*2}# Connections")
     for src_full, dst_full in connections:
         src, outp = src_full.split(".")
         dst, inp = dst_full.split(".")
         lines.append(f'{indent*2}self.model.connect("{src}", "{outp}", "{dst}", "{inp}")')
 
-    # Logs
     logs_str = ", ".join(f'"{l}"' for l in logs)
     lines.append("")
     lines.append(f"{indent*2}self.variables_to_log = [{logs_str}]")
@@ -134,34 +174,31 @@ def generate_build_model_code(blocks, connections, logs):
     return "\n".join(lines)
 
 
-# ============================================================================
-# 5. INJECTION of build_model() into user controller
-# ============================================================================
-
+# =============================================================================
+#
+# =============================================================================
 def inject_build_model(controller_path, build_model_code, required_imports):
     path = Path(controller_path)
     text = path.read_text()
 
-    # Ensure mandatory imports exist
+    # Ajouter imports
     for imp in required_imports:
         if imp not in text:
             text = imp + "\n" + text
 
-    text = remove_old_build_model(text)
+    # Supprimer ancien build_model()
+    text = remove_build_model_function(text)
 
-    # Insert new build_model() at END of controller class
+    # Trouver fin de la classe héritant de SofaPysimBlocksController
     class_pattern = r"class\s+(\w+)\s*\(\s*SofaPysimBlocksController\s*\)\s*:"
     match = re.search(class_pattern, text)
-
     if not match:
         raise RuntimeError("No class inheriting SofaPysimBlocksController found.")
 
-    class_start = match.end()  # position after class header
-    # find next class OR eof
+    class_start = match.end()
     next_class = re.search(r"\nclass\s+", text[class_start:])
     class_end = class_start + (next_class.start() if next_class else len(text) - class_start)
 
-    # Insert code with correct indentation
     insertion = "\n" + build_model_code + "\n"
     new_text = text[:class_end] + insertion + text[class_end:]
 
@@ -170,51 +207,66 @@ def inject_build_model(controller_path, build_model_code, required_imports):
 
 
 
-# ============================================================================
-# 6. MAIN GENERATION FUNCTION
-# ============================================================================
-
-def generate_sofa_controller(blocks, connections, simulation, controller_path, dry_run=False):
+# =============================================================================
+# MAIN
+# =============================================================================
+def generate_sofa_controller(blocks, connections, simulation, dry_run=False):
     """
-    Main function called by CLI.
-    Generates:
-      - parameters_auto.py (in same directory as controller)
-      - auto build_model() injected into controller
+    - If SofaPlant → load scene and find
+    - If SofaExchangeIO → use field YAML `controller_file`.
     """
 
-    # 1. Transform SofaPlant if needed
-    blocks_sofa = [transform_block_for_sofa(blk) for blk in blocks]
+    # 1. Identifier le bloc SofaPlant ou SofaExchangeIO
+    sofa_block = next((b for b in blocks if b["type"].lower() in ("sofa_plant", "sofa_exchange_i_o")), None)
 
-    # 2. Write parameters_auto.py
-    controller_path = Path(controller_path)
-    controller_dir = controller_path.parent
+    if sofa_block is None:
+        raise RuntimeError("No SofaPlant or SofaExchangeIO block found in project.")
+
+    # 2. Si path explicite fourni par --sofa, override
+    # Cas SofaPlant → détection automatique
+    if sofa_block["type"].lower() == "sofa_plant":
+        scene_file = Path(sofa_block["scene_file"])
+        controller_file = detect_controller_file_from_scene(scene_file)
+
+    # Cas SofaExchangeIO → nécessite un champ YAML
+    else:
+        if "controller_file" not in sofa_block:
+            raise RuntimeError(
+                "SofaExchangeIO block requires a `controller_file:` entry "
+                "to enable automatic controller generation."
+            )
+        controller_file = Path(sofa_block["controller_file"])
+
+    blocks = [normalize_block_for_controller(b) for b in blocks]
+
+    # 3. Générer parameters_auto.py dans le même dossier que le controller
+    controller_dir = controller_file.parent
     params_path = controller_dir / "parameters_auto.py"
-
-    params_src = generate_parameters(blocks_sofa, simulation)
-    params_text = "\n".join(params_src)
+    params_src = generate_parameters(blocks, simulation)
+    params_txt = "\n".join(params_src)
     if dry_run:
         print("\n----- DRY RUN PARAMETERS_AUTO.PY (no changes written) -----")
-        print(params_text)
+        print(params_txt)
     else:
-        params_path.write_text(params_text)
+        params_path.write_text(params_txt)
         print(f"[OK] parameters_auto.py written to {params_path}")
 
-    # 3. Required imports to add
+    # 4. Imports requis
     required_imports = {"from parameters_auto import *", "from pySimBlocks import Model"}
-    for blk in blocks_sofa:
+    for blk in blocks:
         module, class_name = resolve_block_import(blk["from"], blk["type"])
         required_imports.add(f"from {module} import {class_name}")
 
-    # 4. Create build_model() code
+    # 5. Générer build_model()
     logs = simulation.get("log", [])
-    build_model_code = generate_build_model_code(blocks_sofa, connections, logs)
+    build_model_code = generate_build_model_code(blocks, connections, logs)
 
-    # 5. Inject into controller
-    new_text = inject_build_model(controller_path, build_model_code, required_imports)
+    # 6. Mise à jour du controller
+    new_text = inject_build_model(controller_file, build_model_code, required_imports)
 
     if dry_run:
         print("\n----- DRY RUN SOFA CONTROLLER (no changes written) -----")
         print(new_text)
     else:
-        controller_path.write_text(new_text)
-        print(f"[OK] Updated controller with auto-generated build_model(): {controller_path}")
+        controller_file.write_text(new_text)
+        print(f"[OK] Updated controller with auto-generated build_model(): {controller_file}")

@@ -62,10 +62,9 @@ def main():
         help="Output directory (default = base name of YAML file)."
     )
 
-
     parser.add_argument(
         "--sofa",
-        default=None,
+        action="store_true",
         help="Path to sofa controller to update with pysimblocks. Will be overwritten if nothing specify."
     )
 
@@ -78,7 +77,7 @@ def main():
 
     blocks, connections, simulation, plots = process_yaml(args.config)
 
-    if args.sofa is None:
-        generate_project(blocks, connections, simulation, plots, args.config, args.out)
+    if args.sofa:
+        generate_sofa_controller(blocks, connections, simulation, args.dry_run)
     else:
-        generate_sofa_controller(blocks, connections, simulation, args.sofa, args.dry_run)
+        generate_project(blocks, connections, simulation, plots, args.config, args.out)
