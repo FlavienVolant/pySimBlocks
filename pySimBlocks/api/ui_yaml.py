@@ -1,3 +1,4 @@
+import os
 import yaml
 import streamlit as st
 from pySimBlocks.api.helpers import FlowStyleList
@@ -57,6 +58,17 @@ def render_yaml_export(blocks, connections, dt, T, logs, plots):
     with st.expander("file content"):
         st.code(yaml_str, language="yaml")
 
-    st.download_button("Download YAML", yaml_str, file_name="model.yaml")
+    project_dir = st.session_state.get("project_dir", None)
+    if not project_dir:
+        st.error("Please set a project directory first.")
+        return
+    if st.button("Save project"):
 
-    return yaml_data       # <-- indispensable !
+        os.makedirs(project_dir, exist_ok=True)
+
+        with open(os.path.join(project_dir, "project.yaml"), "w") as f:
+            f.write(yaml.dump(yaml_data, sort_keys=False))
+
+        st.success(f"Exported to {project_dir}")
+
+    return yaml_data

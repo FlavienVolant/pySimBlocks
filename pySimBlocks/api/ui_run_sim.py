@@ -2,63 +2,91 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-
-def render_run_sim(param_str, model_str, yaml_data):
-
-    st.subheader("Run Simulation")
-
-    if st.button("Run simulation now"):
-
-        project_dir = st.session_state.get("project_dir", None)
-        if not project_dir:
-            st.error("No project directory set.")
-            return
-
-        # Change working directory
-        old_cwd = os.getcwd()
-        os.chdir(project_dir)
-
-        env = {}
-        try:
-
-            # =========================
-            # Remove local imports
-            # =========================
-            model_clean = "\n".join(
-                line for line in model_str.splitlines()
-                if "from parameters_auto" not in line
-            )
-
-            exec(param_str, env, env)
-            exec(model_clean, env, env)
+from pySimBlocks.api.ui_codegen import generate_code
 
 
-            sim = env["simulator"]
-            T = yaml_data["simulation"]["T"]
+def render_run_sim(yaml_data):
 
-            logs = sim.run(T=T, variables_to_log=yaml_data["simulation"].get("log", []))
+    project_dir = st.session_state.get("project_dir", None)
+    if not project_dir:
+        st.error("No project directory set.")
+        return
 
-            st.success("Simulation completed.")
+    # Change working directory
+    old_cwd = os.getcwd()
+    os.chdir(project_dir)
 
-            time = np.array(logs["time"])
+    env = {}
+    try:
 
-            if "plot" in yaml_data:
-                st.subheader("Resulted Plots")
-                for fig in yaml_data["plot"]:
-                    with st.expander(fig["title"]):
-                        fig_handle = plt.figure()
+        generate_code(yaml_data)
+        param_str = st.session_state["generated_param"]
+        model_str = st.session_state["generated_model"]
 
-                        for var in fig["log"]:
-                            data = np.array(logs[var]).reshape(len(time), -1)
-                            for i in range(data.shape[1]):
-                                plt.step(time, data[:, i], where="post", label=f"{var}[{i}]")
+        # =========================
+        # Remove local imports
+        # =========================
+        model_clean = "\n".join(
+            line for line in model_str.splitlines()
+            if "from parameters_auto" not in line
+        )
 
-                        plt.grid()
-                        plt.legend()
-                        st.pyplot(fig_handle)
+        exec(param_str, env, env)
+        exec(model_clean, env, env)
 
-        except Exception as e:
-            st.error(f"Simulation failed: {e}")
 
-        finally:
-            os.chdir(old_cwd)
+        sim = env["simulator"]
+        T = yaml_data["simulation"]["T"]
+
+
+        logs = sim.run(
+            T=T,
+            variables_to_log=yaml_data["simulation"].get("log", [])
+        )
+
+        st.session_state["simulation_logs"] = logs
+        st.session_state["simulation_done"] = True
+        st.success("Simulation completed.")
+
+
+    except Exception as e:
+        st.error(f"Simulation failed: {e}")
+
+    finally:
+        os.chdir(old_cwd)
+
+
+
+def render_results(yaml_data):
+    if not st.session_state.get("simulation_done", False):
+        return
+
+    if st.session_state.get("results_outdated", False):
+        st.warning("Results may be outdated. Run the simulation to update them.")
+
+    logs = st.session_state.get("simulation_logs")
+    if logs is None:
+        return
+
+    time = np.array(logs["time"])
+
+    st.header("Results")
+
+    if "plot" in yaml_data:
+        for fig in yaml_data["plot"]:
+            with st.expander(fig["title"]):
+                fig_handle = plt.figure()
+
+                for var in fig["log"]:
+                    data = np.array(logs[var]).reshape(len(time), -1)
+                    for i in range(data.shape[1]):
+                        plt.step(
+                            time,
+                            data[:, i],
+                            where="post",
+                            label=f"{var}[{i}]"
+                        )
+
+                plt.grid()
+                plt.legend()
+                st.pyplot(fig_handle)

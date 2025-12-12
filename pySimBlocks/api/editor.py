@@ -11,10 +11,10 @@ from pySimBlocks.api.ui_blocks import render_block_form, render_block_list
 from pySimBlocks.api.ui_connections import render_connections
 from pySimBlocks.api.ui_plots import render_plots
 from pySimBlocks.api.ui_yaml import render_yaml_export
-from pySimBlocks.api.ui_codegen import render_codegen
+from pySimBlocks.api.ui_codegen import render_generated_code, generate_code
 from pySimBlocks.api.ui_workspace import render_workspace
 from pySimBlocks.api.ui_project_export import render_project_export
-from pySimBlocks.api.ui_run_sim import render_run_sim
+from pySimBlocks.api.ui_run_sim import render_run_sim, render_results
 from pySimBlocks.api.ui_load_yaml import render_load_yaml
 
 # --------------------------------------------------
@@ -45,6 +45,9 @@ default_session_keys = {
     "generated_model": None,
     "generated_run": None,
     "project_dir": None,
+    "generated": False,
+    "simulation_logs": None,
+    "simulation_done": False,
 }
 
 for key, default in default_session_keys.items():
@@ -166,25 +169,23 @@ yaml_data = render_yaml_export(
 # ============================================================
 # CODE GENERATION
 # ============================================================
-generated = render_codegen(yaml_data)
+# generated = render_codegen(yaml_data)
 
-if generated:
-    param = st.session_state["generated_param"]
-    model = st.session_state["generated_model"]
-    run   = st.session_state["generated_run"]
+st.header("Actions")
+col1, col2, col3 = st.columns(3)
+with col1:
+    if st.button("Display Python Files"):
+        generate_code(yaml_data)
 
-    # Buttons ABOVE file contents
-    render_run_sim(param, model, yaml_data)
-    render_project_export(yaml_data, param, model, run)
+with col2:
+    if st.button("Run Simulation"):
+        render_run_sim(yaml_data)
 
-    st.subheader("parameters_auto.py")
-    with st.expander("File content"):
-        st.code(param, language="python")
+with col3:
+    if st.button("Export to folder"):
+        render_project_export(yaml_data)
 
-    st.subheader("model.py")
-    with st.expander("File content"):
-        st.code(model, language="python")
+if st.session_state.get("generated", False):
 
-    st.subheader("run.py")
-    with st.expander("File content"):
-        st.code(run, language="python")
+    render_results(yaml_data)
+    render_generated_code()
