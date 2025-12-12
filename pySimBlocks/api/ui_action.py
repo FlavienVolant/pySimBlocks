@@ -11,7 +11,7 @@ def render_action():
 
     sofa_blocks = [
             b for b in yaml_data["blocks"]
-            if b["type"].lower() == "sofa_plant"
+            if b["type"].lower() in ["sofa_plant", "sofa_exchange_i_o"]
         ]
 
     if len(sofa_blocks) > 0:

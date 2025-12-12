@@ -2,6 +2,7 @@ import os
 import shutil
 import subprocess
 import streamlit as st
+import atexit
 
 # -------------------------------------------------------------------
 # SOFA ENVIRONMENT CHECK
@@ -29,7 +30,6 @@ def check_sofa_environment():
         return False, "SofaPython3 modules cannot be imported."
 
     return True, "OK"
-
 
 # -------------------------------------------------------------------
 # RUN SOFA
@@ -65,9 +65,11 @@ def run_sofa_scene(scene_file):
         return
 
     # ======= 3) Validate scene file ========
-    scene_file = os.path.abspath(scene_file)
-    if not os.path.exists(scene_file):
-        st.error(f"Scene file not found: {scene_file}")
+    final_scene_file = scene_file
+    if not os.path.exists(final_scene_file):
+        final_scene_file = os.path.abspath(scene_file)
+        if not os.path.exists(final_scene_file):
+            st.error(f"Scene file not found (in relative and absolute): {scene_file}")
         return
 
     # ======= 4) Build SOFA command ========
@@ -75,13 +77,13 @@ def run_sofa_scene(scene_file):
         runsofa,
         "-l", "SofaImgui,SofaPython3",
         "-g", "imgui",
-        scene_file
+        final_scene_file
     ]
 
     env = os.environ.copy()
 
     try:
-        subprocess.Popen(cmd, env=env)
+        proc = subprocess.Popen(cmd, env=env)
         st.success(f"SOFA launched with: {scene_file}")
 
     except Exception as e:
