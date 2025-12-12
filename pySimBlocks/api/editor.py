@@ -122,17 +122,6 @@ if "auto_yaml_loaded" not in st.session_state:
             st.warning(f"Found YAML but failed to load it: {e}")
 
 # ============================================================
-# UI layout
-# ============================================================
-with st.sidebar:
-    render_action()
-    st.markdown("---")
-    render_diagram(st.session_state["blocks"], st.session_state["connections"])
-    st.markdown("---")
-    render_workspace()
-
-
-# ============================================================
 # MAIN PAGE
 # ============================================================
 st.title("pySimBlocks Editor")
@@ -156,6 +145,16 @@ generate_yaml_content(
 )
 
 if st.session_state.get("generated", False):
-
     render_results()
     render_generated_code()
+
+
+# ============================================================
+# UI layout
+# ============================================================
+with st.sidebar:
+    render_action()
+    st.markdown("---")
+    render_diagram(st.session_state["blocks"], st.session_state["connections"])
+    st.markdown("---")
+    render_workspace()

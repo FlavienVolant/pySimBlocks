@@ -2,9 +2,63 @@ import streamlit as st
 import yaml
 import os
 from pySimBlocks.api.codegen import generate_python_content
+from pySimBlocks.generate.generate_sofa_controller import generate_sofa_controller
 
 
-def project_export(yaml_data):
+def project_export(yaml_data, export_mode):
+    project_dir = st.session_state.get("project_dir", None)
+    if not project_dir:
+        st.error("Please set a project directory first.")
+        return
+
+    os.makedirs(project_dir, exist_ok=True)
+
+    # détecter blocs sofa
+    sofa_blocks = [b for b in yaml_data["blocks"]
+                   if b["type"].lower() in ("sofa_plant", "sofa_exchange_i_o")]
+
+    # ======================================================================
+    # CASE 1 — No Sofa block
+    # ======================================================================
+    if not sofa_blocks or export_mode=="cli-only":
+        pySimBloc_export(yaml_data)
+        return
+
+    sofa_block = sofa_blocks[0]
+
+    # ======================================================================
+    # CASE 2 — SofaExchangeIO → only controller
+    # ======================================================================
+    if sofa_block["type"].lower() == "sofa_exchange_i_o" or export_mode=="controller-only":
+
+        # YAML d'abord
+        with open(os.path.join(project_dir, "project.yaml"), "w") as f:
+            f.write(yaml.dump(yaml_data, sort_keys=False))
+
+        # puis génération controller
+        generate_sofa_controller(
+            yaml_data["blocks"],
+            yaml_data["connections"],
+            yaml_data.get("simulation", {}),
+        )
+
+        st.success(f"Exported YAML + Sofa controller to {project_dir}")
+        return
+
+    # ======================================================================
+    # CAS 3 — SofaPlant → command line + controller
+    # ======================================================================
+    pySimBloc_export(yaml_data)
+    generate_sofa_controller(
+        yaml_data["blocks"],
+        yaml_data["connections"],
+        yaml_data.get("simulation", {}),
+    )
+
+    st.success(f"Exported SofaPlant project + controller to {project_dir}")
+
+
+def pySimBloc_export(yaml_data):
 
     project_dir = st.session_state.get("project_dir", None)
     if not project_dir:
@@ -30,7 +84,6 @@ def project_export(yaml_data):
     with open(os.path.join(project_dir, "run.py"), "w") as f:
         f.write(run_str)
 
-    st.success(f"Exported to {project_dir}")
 
 
 def save_yaml_content(yaml_data):

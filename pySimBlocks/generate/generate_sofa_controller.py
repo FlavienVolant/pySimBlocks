@@ -1,3 +1,5 @@
+import sys
+import os
 import re
 import inspect
 from pathlib import Path
@@ -28,10 +30,13 @@ def normalize_block_for_controller(block):
 
 
 def _load_scene_in_subprocess(scene_path, conn):
-    """
-    Load Sofa Scene in subprocess, get path file from controller.
-    """
+    # """
+    # Load Sofa Scene in subprocess, get path file from controller.
+    # """
     try:
+        scene_dir = os.path.dirname(os.path.abspath(scene_path))
+        if scene_dir not in sys.path:
+            sys.path.insert(0, scene_dir)
 
         spec = importlib.util.spec_from_file_location("scene", scene_path)
         mod = importlib.util.module_from_spec(spec)
@@ -40,7 +45,6 @@ def _load_scene_in_subprocess(scene_path, conn):
         import Sofa
         root = Sofa.Core.Node("root")
 
-        # Appel createScene() → doit retourner root, controller
         out = mod.createScene(root)
         if not isinstance(out, (list, tuple)) or len(out) < 2:
             conn.send(None)

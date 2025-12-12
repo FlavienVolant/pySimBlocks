@@ -54,6 +54,7 @@ def run_simulation(yaml_data):
 
     finally:
         os.chdir(old_cwd)
+    st.rerun()
 
 
 
