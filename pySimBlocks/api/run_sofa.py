@@ -84,6 +84,7 @@ def run_sofa_scene(scene_file):
 
     try:
         proc = subprocess.Popen(cmd, env=env)
+        st.session_state["sofa_process"] = proc
         st.success(f"SOFA launched with: {scene_file}")
 
     except Exception as e:
@@ -96,6 +97,19 @@ def run_sofa_scene(scene_file):
 
 def sofa_launcher_ui(scene_path):
     st.subheader("Run SOFA")
+
+    p = st.session_state.get("sofa_process", None)
+    if p is not None:
+        code = p.poll()
+
+        if code is not None:
+            try:
+                p.terminate()
+                p.wait(timeout=0.2)
+            except Exception:
+                pass
+
+            st.session_state["sofa_process"] = None
 
     # Check environment first
     env_ok, msg = check_sofa_environment()
