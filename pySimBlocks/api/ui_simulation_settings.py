@@ -22,4 +22,12 @@ def render_simulation_settings():
     T_raw  = st.text_input("T",  value=st.session_state.get("T_raw", "2.0"))
     dt = parse_value(dt_raw)
     T = parse_value(T_raw)
-    return dt, T
+
+
+    signals = [
+        f"{b['name']}.outputs.{p}"
+        for b in st.session_state["blocks"]
+        for p in b["computed_outputs"]
+    ]
+    signals_logged = st.multiselect("Signals to log", signals, default=st.session_state.get("logs_loaded", []))
+    return dt, T, signals_logged

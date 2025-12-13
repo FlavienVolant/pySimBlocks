@@ -84,7 +84,7 @@ default_session_keys = {
     "generated_run": None,
     "project_dir": None,
     "simulation_logs": None,
-    "simulation_done": False,
+    # "simulation_done": False,
 }
 
 for key, default in default_session_keys.items():
@@ -132,9 +132,9 @@ render_blocks(registry, categories, st.session_state["blocks"])
 st.markdown("---")
 render_connections(st.session_state["blocks"], st.session_state["connections"])
 st.markdown("---")
-dt, T = render_simulation_settings()
+dt, T, signals_logged = render_simulation_settings()
 st.markdown("---")
-logs = render_plots_definition(st.session_state["plots"])
+logs = render_plots_definition(st.session_state["plots"], signals_logged)
 
 
 generate_yaml_content(

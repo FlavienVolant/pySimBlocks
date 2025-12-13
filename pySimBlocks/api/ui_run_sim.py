@@ -38,7 +38,6 @@ def run_simulation(yaml_data):
         sim = env["simulator"]
         T = yaml_data["simulation"]["T"]
 
-
         logs = sim.run(
             T=T,
             variables_to_log=yaml_data["simulation"].get("log", [])
@@ -63,9 +62,6 @@ def render_results():
         return
 
     yaml_data = st.session_state.get("yaml_data", None)
-
-    if st.session_state.get("results_outdated", False):
-        st.warning("Results may be outdated. Run the simulation to update them.")
 
     logs = st.session_state.get("simulation_logs")
     if logs is None:

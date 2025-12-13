@@ -1,0 +1,26 @@
+blocks:
+- name: ramp
+  from: sources
+  type: ramp
+  slope: [[10.0]]
+  start_time: 10
+  offset: [[10.0]]
+- name: rate_limiter
+  from: operators
+  type: rate_limiter
+  rising_slope: 1.0
+  falling_slope: -1
+  initial_output: [[0.0]]
+connections:
+- [ramp.out, rate_limiter.in]
+simulation:
+  dt: 0.1
+  T: 2.0
+  log:
+  - ramp.outputs.out
+  - rate_limiter.outputs.out
+plot:
+- title: Rate
+  log:
+  - ramp.outputs.out
+  - rate_limiter.outputs.out

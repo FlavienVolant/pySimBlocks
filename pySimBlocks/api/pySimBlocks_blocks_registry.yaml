@@ -194,6 +194,26 @@ ramp:
   - name: offset
     optional: true
     type: float | array-like (n,) | array (n,1)
+rate_limiter:
+  category: operators
+  inputs:
+    dynamic: false
+    ports:
+    - in
+  outputs:
+    dynamic: false
+    ports:
+    - out
+  parameters:
+  - name: rising_slope
+    optional: false
+    type: float | array-like (n,) | array (n,1)
+  - name: falling_slope
+    optional: false
+    type: float | array-like (n,) | array (n,1)
+  - name: initial_output
+    optional: true
+    type: float | array-like (n,) | array (n,1)
 sinusoidal:
   category: sources
   inputs:
