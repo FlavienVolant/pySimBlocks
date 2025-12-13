@@ -39,7 +39,6 @@ class DiscreteDerivator(Block):
 
         self.state["u_prev"] = None
         self.next_state["u_prev"] = None
-        self._dt = 1.0
 
         self._first_output = True
 
@@ -95,7 +94,7 @@ class DiscreteDerivator(Block):
 
 
     # -------------------------------------------------------
-    def output_update(self, t: float):
+    def output_update(self, t: float, dt: float):
         """
         y[k] = (u[k] - u[k-1]) / dt
         """
@@ -128,7 +127,7 @@ class DiscreteDerivator(Block):
                 f"previous input dimension {u_prev.shape}."
             )
 
-        y = (u - u_prev) / self._dt
+        y = (u - u_prev) / dt
         self.outputs["out"] = y
 
     # -------------------------------------------------------
@@ -156,5 +155,4 @@ class DiscreteDerivator(Block):
                 f"previous input dimension {u_prev.shape}."
             )
 
-        self._dt = dt
         self.next_state["u_prev"] = u.copy()

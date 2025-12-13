@@ -43,5 +43,5 @@ class Constant(BlockSource):
         self.outputs["out"] = np.copy(self.value)
 
     # ------------------------------------------------------------------
-    def output_update(self, t: float) -> None:
+    def output_update(self, t: float, dt: float) -> None:
         self.outputs["out"] = np.copy(self.value)

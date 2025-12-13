@@ -65,7 +65,7 @@ class Mux(Block):
         self.outputs["out"] = self._compute_output()
 
     # ---------------------------------------------------------
-    def output_update(self, t: float):
+    def output_update(self, t: float, dt: float):
         """
         Compute vertical concatenation of all inputs.
         """

@@ -50,7 +50,7 @@ class SofaExchangeIO(Block):
         for k in self.output_keys:
             self.outputs[k] = np.zeros((1, 1))
 
-    def output_update(self, t: float):
+    def output_update(self, t: float, dt: float):
         """
         Outputs are produced by upstream blocks (controller).
         This block itself does nothing but check validity.

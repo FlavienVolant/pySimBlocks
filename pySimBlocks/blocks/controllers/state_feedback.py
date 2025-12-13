@@ -76,7 +76,7 @@ class StateFeedback(Block):
     # ---------------------------------------------------------
     # PHASE 1: OUTPUT UPDATE
     # ---------------------------------------------------------
-    def output_update(self, t: float):
+    def output_update(self, t: float, dt: float):
         """
         Compute u = G*r - K*x
         """

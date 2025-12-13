@@ -83,7 +83,6 @@ class DiscreteIntegrator(Block):
             self.state["x"] = None
 
         self.next_state["x"] = None
-        self._dt = 1.0   # for backward Euler
 
 
     # ------------------------------------------------------------------
@@ -103,7 +102,7 @@ class DiscreteIntegrator(Block):
 
 
     # ------------------------------------------------------------------
-    def output_update(self, t):
+    def output_update(self, t: float, dt: float):
         x = self.state["x"]
 
         if x is None:
@@ -124,14 +123,13 @@ class DiscreteIntegrator(Block):
             if u is None:
                 raise RuntimeError(f"[{self.name}] Missing input for backward Euler.")
             u = np.asarray(u).reshape(-1, 1)
-            self.outputs["out"] = x + self._dt * u
+            self.outputs["out"] = x + dt * u
 
 
 
 
     # ------------------------------------------------------------------
     def state_update(self, t, dt):
-        self._dt = dt
 
         u = self.inputs["in"]
         if u is None:

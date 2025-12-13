@@ -66,7 +66,6 @@ class RateLimiter(Block):
 
         self.state["y"] = None
         self.next_state["y"] = None
-        self._dt = 0.0
 
     # ------------------------------------------------------------------
     def _to_column(self, name, value):
@@ -109,7 +108,7 @@ class RateLimiter(Block):
         self.outputs["out"] = y0
 
     # ------------------------------------------------------------------
-    def output_update(self, t: float):
+    def output_update(self, t: float, dt: float):
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None.")
@@ -118,13 +117,12 @@ class RateLimiter(Block):
         y_prev = self.state["y"]
 
         du = u - y_prev
-        du_min = self.falling_slope * self._dt
-        du_max = self.rising_slope * self._dt
+        du_min = self.falling_slope * dt
+        du_max = self.rising_slope * dt
 
         du_limited = np.clip(du, du_min, du_max)
         self.outputs["out"] = y_prev + du_limited
 
     # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float):
-        self._dt = dt
         self.next_state["y"] = self.outputs["out"]

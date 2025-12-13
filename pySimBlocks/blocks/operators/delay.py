@@ -104,7 +104,7 @@ class Delay(Block):
         self.outputs["out"] = None
 
     # ------------------------------------------------------------------
-    def output_update(self, t: float):
+    def output_update(self, t: float, dt: float):
         buffer = self.state["buffer"]
 
         # NEW: If buffer not initialized, infer dimension from current input

@@ -71,7 +71,7 @@ class Step(BlockSource):
         )
 
     # ------------------------------------------------------------------
-    def output_update(self, t: float):
+    def output_update(self, t: float, dt: float):
         self.outputs["out"] = (
             np.copy(self.value_before)
             if t < self.start_time - self.EPS

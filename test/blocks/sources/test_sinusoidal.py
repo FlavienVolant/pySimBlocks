@@ -15,7 +15,7 @@ def test_sinusoidal_scalar():
 
 def test_sinusoidal_scalar_time():
     s = Sinusoidal("s", 2.0, 1.0, 0.0, 0.0)
-    s.output_update(0.25)  # sin(2π * 1 * 0.25) = sin(π/2) = 1
+    s.output_update(0.25, 0.1)  # sin(2π * 1 * 0.25) = sin(π/2) = 1
     assert np.allclose(s.outputs["out"], [[2.0]])
 
 
@@ -30,7 +30,7 @@ def test_sinusoidal_vector():
         offset=[0.0, 10.0],
         phase=[0.0, np.pi/2],
     )
-    s.output_update(0.0)
+    s.output_update(0.0, 0.1)
     # out(0): [0 + 0, 2*sin(pi/2)+10] = [0, 12]
     assert np.allclose(s.outputs["out"], [[0.0], [12.0]])
 
@@ -44,7 +44,7 @@ def test_sinusoidal_broadcast_scalar():
                    frequency=0.5,   # broadcast
                    offset=0.0,
                    phase=0.0)
-    s.output_update(1.0)
+    s.output_update(1.0, 0.1)
     expected = np.sin(2*np.pi*0.5*1.0) * np.ones((3,1))
     assert np.allclose(s.outputs["out"], expected)
 

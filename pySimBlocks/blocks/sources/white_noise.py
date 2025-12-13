@@ -73,6 +73,6 @@ class WhiteNoise(BlockSource):
         self.outputs["out"] = self.mean + self.std * self.rng.standard_normal(self.mean.shape)
 
     # ------------------------------------------------------------------
-    def output_update(self, t: float) -> None:
+    def output_update(self, t: float, dt: float) -> None:
         # Draw new noise sample
         self.outputs["out"] = self.mean + self.std * self.rng.standard_normal(self.mean.shape)

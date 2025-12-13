@@ -102,7 +102,7 @@ class Simulator:
         # PHASE 1: OUTPUT UPDATE
         # -------------------------
         for block in self.output_order:
-            block.output_update(self.t)
+            block.output_update(self.t, self.dt)
             self._propagate_all()
 
         # -------------------------

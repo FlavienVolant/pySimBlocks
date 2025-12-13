@@ -97,7 +97,7 @@ class DeadZone(Block):
         self.outputs["out"] = self._apply_dead_zone(u)
 
     # ------------------------------------------------------------------
-    def output_update(self, t: float):
+    def output_update(self, t: float, dt: float):
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None.")

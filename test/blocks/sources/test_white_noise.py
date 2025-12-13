@@ -21,7 +21,7 @@ def test_white_noise_scalar_update():
     s = WhiteNoise("n", mean=2.0, std=0.5, seed=0)
     s.initialize(0.0)
     first = s.outputs["out"].copy()
-    s.output_update(0.1)
+    s.output_update(0.1, 0.1)
     second = s.outputs["out"]
 
     # noise must change at each update

@@ -68,9 +68,9 @@ def test_rate_limiter_scalar_with_initial_output():
 
     logs = run_sim(src, R, dt=0.1, T=0.3)
 
-    assert np.allclose(logs[0], [[0.0]])
-    assert np.allclose(logs[1], [[0.1]])
-    assert np.allclose(logs[2], [[0.2]])
+    assert np.allclose(logs[0], [[0.1]])
+    assert np.allclose(logs[1], [[0.2]])
+    assert np.allclose(logs[2], [[0.3]])
 
 
 # ------------------------------------------------------------
@@ -118,7 +118,9 @@ def test_rate_limiter_vector():
     # First step after transition
     # channel 0: +0.1
     # channel 1: -0.05
-    assert np.allclose(logs[1], [[0.1], [-0.05]])
+    assert np.allclose(logs[0], [[0.1], [-0.05]])
+    assert np.allclose(logs[1], [[0.2], [-0.1]])
+    assert np.allclose(logs[2], [[0.3], [-0.15]])
 
 
 # ------------------------------------------------------------

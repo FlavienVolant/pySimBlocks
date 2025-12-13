@@ -107,7 +107,7 @@ class LinearStateSpace(Block):
     # ----------------------------------------------------------------------
     # PHASE 1 : OUTPUT UPDATE
     # ----------------------------------------------------------------------
-    def output_update(self, t: float) -> None:
+    def output_update(self, t: float, dt: float) -> None:
         """
         Compute y[k] = C x[k] from current state and input.
         """

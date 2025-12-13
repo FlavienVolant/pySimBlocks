@@ -43,9 +43,6 @@ class Gain(Block):
         self.inputs["in"] = None
         self.outputs["out"] = None
 
-        # No internal state
-        # (no self.state / next_state modifications)
-
     # ------------------------------------------------------------------
     # INITIALIZATION
     # ------------------------------------------------------------------
@@ -65,7 +62,7 @@ class Gain(Block):
     # ------------------------------------------------------------------
     # PHASE 1 : OUTPUT UPDATE
     # ------------------------------------------------------------------
-    def output_update(self, t: float):
+    def output_update(self, t: float, dt: float):
         """
         Compute y[k] = K * u[k].
         Inputs must be provided by the simulator before this call.

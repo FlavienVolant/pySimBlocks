@@ -146,8 +146,6 @@ class Pid(Block):
         self.next_state["x_i"] = np.zeros((1,1))
         self.next_state["e_prev"] = np.zeros((1,1))
 
-        self._dt = 1.0  # updated at each step
-
 
     # =====================================================================
     #  Utility: Normalize a scalar-like value and check it is SISO
@@ -223,7 +221,7 @@ class Pid(Block):
     # =====================================================================
     # Phase 1 : output_update
     # =====================================================================
-    def output_update(self, t: float):
+    def output_update(self, t: float, dt: float):
         e = self.inputs["e"]
         if e is None:
             raise RuntimeError(f"[{self.name}] Missing input 'e'.")
@@ -237,9 +235,9 @@ class Pid(Block):
         if self.integration_method == "euler forward":
             I = x_i
         elif self.integration_method == "euler backward":
-            I = x_i + self.Ki * e * self._dt
+            I = x_i + self.Ki * e * dt
 
-        D = self.Kd * (e - e_prev) / self._dt
+        D = self.Kd * (e - e_prev) / dt
 
         u = P + I + D
 
@@ -269,6 +267,5 @@ class Pid(Block):
         if self.u_max is not None:
             x_i_next = np.minimum(x_i_next, self.u_max)
 
-        self._dt = dt
         self.next_state["x_i"] = x_i_next
         self.next_state["e_prev"] = e.copy()

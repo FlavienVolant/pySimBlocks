@@ -76,5 +76,5 @@ class Sinusoidal(BlockSource):
         self._compute_output(t0)
 
     # ------------------------------------------------------------------
-    def output_update(self, t: float) -> None:
+    def output_update(self, t: float, dt: float) -> None:
         self._compute_output(t)

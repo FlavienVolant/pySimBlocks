@@ -68,6 +68,6 @@ class Ramp(BlockSource):
         self.outputs["out"] = np.copy(self.offset)
 
     # ------------------------------------------------------------------
-    def output_update(self, t: float) -> None:
+    def output_update(self, t: float, dt: float) -> None:
         dt_vec = np.maximum(0.0, t - self.start_time)
         self.outputs["out"] = self.offset + self.slope * dt_vec

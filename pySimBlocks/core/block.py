@@ -46,7 +46,7 @@ class Block(ABC):
         ...
 
     @abstractmethod
-    def output_update(self, t: float):
+    def output_update(self, t: float, dt: float):
         """
         Compute outputs y[k] from x[k] and inputs u[k].
         Called before state_update.

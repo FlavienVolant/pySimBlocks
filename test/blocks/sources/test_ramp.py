@@ -15,7 +15,7 @@ def test_ramp_scalar_before_start():
 
 def test_ramp_scalar_after_start():
     r = Ramp("r", slope=2.0, start_time=1.0, offset=0.0)
-    r.output_update(2.0)
+    r.output_update(2.0, 0.1)
     assert np.allclose(r.outputs["out"], [[2.0]])  # slope * (2 - 1) = 2
 
 
@@ -27,7 +27,7 @@ def test_ramp_vector_parameters():
              slope=[1.0, 2.0],
              start_time=[0.0, 1.0],
              offset=[0.0, 10.0])
-    r.output_update(2.0)
+    r.output_update(2.0, 0.1)
     # first: 1*(2-0)=2
     # second: 10 + 2*(2-1)=12
     assert np.allclose(r.outputs["out"], [[2.0], [12.0]])
@@ -41,7 +41,7 @@ def test_ramp_broadcast_scalar_start_time():
              slope=[1.0, 1.0, 1.0],
              start_time=0.0,
              offset=0.0)
-    r.output_update(2.0)
+    r.output_update(2.0, 0.1)
     assert np.allclose(r.outputs["out"], [[2.0], [2.0], [2.0]])
 
 

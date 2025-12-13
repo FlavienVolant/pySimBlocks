@@ -76,7 +76,7 @@ class Sum(Block):
         self.outputs["out"] = self._compute_output()
 
     # ----------------------------------------------------------------------
-    def output_update(self, t: float):
+    def output_update(self, t: float, dt: float):
         # Check all inputs & check dimension consistency
         shapes = set()
         for i in range(self.num_inputs):

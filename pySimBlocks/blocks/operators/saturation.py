@@ -83,7 +83,7 @@ class Saturation(Block):
         self.outputs["out"] = np.clip(u, self.u_min, self.u_max)
 
     # ------------------------------------------------------------------
-    def output_update(self, t: float):
+    def output_update(self, t: float, dt: float):
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is None.")

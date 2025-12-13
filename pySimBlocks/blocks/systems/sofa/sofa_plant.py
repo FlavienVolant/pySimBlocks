@@ -141,7 +141,7 @@ class SofaPlant(Block):
             self.next_state[k] = initial_outputs[k]
 
 
-    def output_update(self, t: float):
+    def output_update(self, t: float, dt: float):
         """
         Outputs were already updated during the previous state_update().
         This block retrieves outputs from an external SOFA worker process,
