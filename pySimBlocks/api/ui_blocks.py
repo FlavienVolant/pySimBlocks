@@ -91,12 +91,14 @@ def render_param_form(block_registry, block_type, filled=None):
     for p in params:
         name = p["name"]
         typ  = p["type"]
+        optional = p.get("optional", False)
+        label = f"{name} (optional)" if optional else name
         default = filled.get(name, "")
 
         key = f"param_{name}"
 
         # initialize the entry in session_state
-        if key not in st.session_state:
+        if key not in st.session_state or st.session_state[key] == "":
             st.session_state[key] = default
 
         # Retrieve raw value
@@ -116,7 +118,7 @@ def render_param_form(block_registry, block_type, filled=None):
         # --------------------------------------------------------
         if "|" in typ:
             raw = ensure_string()
-            values[name] = st.text_input(name, value=raw, key=key)
+            values[name] = st.text_input(label, value=raw, key=key)
             continue
 
         # --------------------------------------------------------
@@ -128,7 +130,7 @@ def render_param_form(block_registry, block_type, filled=None):
             except:
                 init = 1
                 st.session_state[key] = 1
-            values[name] = st.number_input(name, value=init, key=key)
+            values[name] = st.number_input(label, value=init, key=key)
             continue
 
         # --------------------------------------------------------
@@ -140,7 +142,7 @@ def render_param_form(block_registry, block_type, filled=None):
             except:
                 init = 0.0
                 st.session_state[key] = 0.0
-            values[name] = st.number_input(name, value=init, key=key)
+            values[name] = st.number_input(label, value=init, key=key)
             continue
 
         # --------------------------------------------------------
@@ -148,14 +150,14 @@ def render_param_form(block_registry, block_type, filled=None):
         # --------------------------------------------------------
         if typ in ["array", "matrix"]:
             raw = ensure_string()
-            values[name] = st.text_area(name, value=raw, key=key)
+            values[name] = st.text_area(label, value=raw, key=key)
             continue
 
         # --------------------------------------------------------
         # DEFAULT: treat as text
         # --------------------------------------------------------
         raw = ensure_string()
-        values[name] = st.text_input(name, value=raw, key=key)
+        values[name] = st.text_input(label, value=raw, key=key)
 
     return values
 
