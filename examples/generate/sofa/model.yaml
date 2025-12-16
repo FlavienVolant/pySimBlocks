@@ -1,0 +1,22 @@
+blocks:
+  - name: step
+    from: sources
+    type: step
+
+  - name: error
+    from: operators
+    type: sum
+
+  - name: pid
+    from: controllers
+    type: pid
+
+  - name: sofa
+    from: systems
+    type: sofa_plant
+
+connections:
+  - [step.out, error.in1]
+  - [sofa.measure, error.in2]
+  - [error.out, pid.e]
+  - [pid.u, sofa.cable]

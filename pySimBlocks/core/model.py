@@ -46,8 +46,8 @@ class Model:
             if model_cfg is not None and not isinstance(model_cfg, ModelConfig):
                 raise TypeError("model_cfg must be a ModelConfig")
 
-            from pySimBlocks.project.build_model import build_model
-            build_model(self, Path(model_yaml), model_cfg)
+            from pySimBlocks.project.build_model import build_model_from_yaml
+            build_model_from_yaml(self, Path(model_yaml), model_cfg)
             if model_cfg is not None:
                 model_cfg.validate(list(self.blocks.keys()))
 
