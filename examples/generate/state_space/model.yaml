@@ -1,26 +1,26 @@
 blocks:
   - name: ref
-    from: sources
+    category: sources
     type: step
 
   - name: sum
-    from: operators
+    category: operators
     type: sum
 
   - name: A
-    from: operators
+    category: operators
     type: gain
 
   - name: B
-    from: operators
+    category: operators
     type: gain
 
   - name: delay
-    from: operators
+    category: operators
     type: delay
 
   - name: plant
-    from: systems
+    category: systems
     type: linear_state_space
 
 connections:

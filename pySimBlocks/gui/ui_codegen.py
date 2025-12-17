@@ -1,26 +1,17 @@
-import yaml
 import streamlit as st
+from pySimBlocks.gui.helpers import dump_yaml, dump_model_yaml
 
 
-def render_generated_code():
-    yaml_data = st.session_state.get("yaml_data", None)
-
-    yaml_str = yaml.dump(yaml_data, sort_keys=False)
-    param = st.session_state["generated_param"]
-    model = st.session_state["generated_model"]
-    run = st.session_state["generated_run"]
-
-    st.markdown("---")
+def render_codegen():
     st.header("Generated Files")
+    params_yaml = st.session_state.get("parameters_yaml", {})
+    model_yaml = st.session_state.get("model_yaml", {})
 
-    with st.expander("project.yaml"):
-        st.code(yaml_str, language="yaml")
+    col_param, col_model = st.columns(2)
+    with col_param:
+        with st.expander("parameters.yaml"):
+            st.code(dump_yaml(params_yaml), language="yaml")
 
-    with st.expander("parameters_auto.py"):
-        st.code(param, language="python")
-
-    with st.expander("model.py"):
-        st.code(model, language="python")
-
-    with st.expander("run.py"):
-        st.code(run, language="python")
+    with col_model:
+        with st.expander("model.yaml"):
+            st.code(dump_model_yaml(model_yaml), language="yaml")

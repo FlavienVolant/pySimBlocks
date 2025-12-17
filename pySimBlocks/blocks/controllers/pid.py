@@ -5,19 +5,44 @@ from pySimBlocks.core.block import Block
 
 class Pid(Block):
     """
-    Discrete PID controller.
+    Discrete-time PID controller block.
 
-    Implements a single-input single-output discrete-time PID controller
-    with configurable structure and integration method.
+    Summary:
+        Implements a single-input single-output discrete PID controller,
+        similar to the Simulink PID block. The controller computes a control
+        command from an error signal using proportional, integral and/or
+        derivative actions, depending on the selected control mode.
 
-    Behavior:
-        - Supports P, I, PI, PD, and PID structures
-        - Optional output saturation with anti-windup
-        - Simulink-like execution semantics
+    Parameters (overview):
+        controller : str
+            Control mode. One of {"P", "PI", "PD", "PID"}.
+        Kp : float
+            Proportional gain.
+        Ki : float
+            Integral gain.
+        Kd : float
+            Derivative gain.
+        u_min : float, optional
+            Minimum output saturation.
+        u_max : float, optional
+            Maximum output saturation.
+        sample_time : float, optional
+            Controller sampling period.
+
+    I/O:
+        Inputs:
+            e : error signal.
+        Outputs:
+            u : control command.
 
     Notes:
-        - This block is strictly SISO.
+        - The block is strictly SISO.
+        - Integral action introduces internal state.
+        - If a parameter is not provided, the block falls back to its
+          internal default value.
+        - Output saturation is applied only if u_min and/or u_max are defined.
     """
+
 
 
     # ---------------------------------------------------------------------

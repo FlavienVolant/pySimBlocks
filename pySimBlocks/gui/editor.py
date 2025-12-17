@@ -1,58 +1,28 @@
 import os
 import sys
-import yaml
+import atexit
+import shutil
+from pathlib import Path
 import streamlit as st
 
-from pySimBlocks.gui.codegen import generate_yaml_content
-
-from pySimBlocks.gui.ui_diagram import render_diagram
-from pySimBlocks.gui.ui_workspace import render_workspace
 from pySimBlocks.gui.ui_action import render_action
-from pySimBlocks.gui.ui_project_settings import render_project_settings
 from pySimBlocks.gui.ui_blocks import render_blocks
-from pySimBlocks.gui.ui_connections import render_connections
+from pySimBlocks.gui.ui_codegen import render_codegen
+from pySimBlocks.gui.ui_connections import render_connections, compute_available_outputs
+from pySimBlocks.gui.ui_diagram import render_diagram
+from pySimBlocks.gui.ui_external_param import render_external_paramaters
+from pySimBlocks.gui.ui_plot_results import render_plot_results
+from pySimBlocks.gui.ui_plot_settings import render_plot_settings
+from pySimBlocks.gui.ui_project_settings import render_project_settings
 from pySimBlocks.gui.ui_simulation_settings import render_simulation_settings
-from pySimBlocks.gui.ui_plots_definition import render_plots_definition
-from pySimBlocks.gui.ui_run_sim import render_results
-from pySimBlocks.gui.ui_codegen import render_generated_code
+from pySimBlocks.tools.blocks_registry import load_block_registry
 
 
-# ============================================================
-# HELPERS
-# ============================================================
-path_dir = os.path.dirname(os.path.abspath(__file__))
-REGISTRY_PATH = "pySimBlocks_blocks_registry.yaml"
-REGISTRY_PATH = os.path.join(path_dir, REGISTRY_PATH)
-
-def load_registry():
-    with open(REGISTRY_PATH, "r") as f:
-        return yaml.safe_load(f)
-
-# -------- Automatic detection of YAML IN FOLDER --------
-def auto_detect_yaml(project_dir):
-    preferred = [
-        "project.yaml",
-        "project.yml",
-        "model.yaml",
-        "model.yml",
-    ]
-
-    # 1) preferred names
-    for name in preferred:
-        path = os.path.join(project_dir, name)
-        if os.path.isfile(path):
-            return path
-
-    # 2) fallback: unique yaml
-    yamls = [
-        f for f in os.listdir(project_dir)
-        if f.endswith((".yaml", ".yml"))
-    ]
-
-    if len(yamls) == 1:
-        return os.path.join(project_dir, yamls[0])
-
-    return None
+@st.cache_data
+def _load_registry():
+    return load_block_registry()
+registry = _load_registry()
+categories = sorted(registry.keys())
 
 # --------------------------------------------------
 # Project directory from CLI
@@ -65,26 +35,15 @@ else:
 if "project_dir" not in st.session_state:
     st.session_state["project_dir"] = project_dir
 
-
-# ============================================================
-# Initialize session state
-# ============================================================
+# --------------------------------------------------
+# INITIALIZE KEYS
+# --------------------------------------------------
 default_session_keys = {
-    "yaml_data": None,
-    "blocks": [],
-    "connections": [],
-    "plots": [],
-    "edit_block_index": None,
-    "edit_plot_index": None,
-    "workspace": {},
-    "last_result": None,
-    "generated": False,
-    "generated_param": None,
-    "generated_model": None,
-    "generated_run": None,
-    "project_dir": None,
-    "simulation_logs": None,
-    # "simulation_done": False,
+    "parameters_yaml": {'simulation': {}, 'blocks': {}, 'logging': [], 'plots': []},
+    "model_yaml": {'blocks': [], 'connections': []},
+    "edit_block": None,
+    "project_dir": "",
+    "simulation_done": False
 }
 
 for key, default in default_session_keys.items():
@@ -92,69 +51,42 @@ for key, default in default_session_keys.items():
         st.session_state[key] = default
 
 
-# ============================================================
-# Load registry
-# ============================================================
-registry = load_registry()
-categories = sorted({v["category"] for v in registry.values()})
-
-
-# ============================================================
-# auto load yaml if in folder
-# ============================================================
-if "project_dir" not in st.session_state:
-    st.session_state["project_dir"] = project_dir
-
-if "auto_yaml_loaded" not in st.session_state:
-    yaml_path = auto_detect_yaml(project_dir)
-
-    if yaml_path is not None:
-        try:
-            with open(yaml_path, "r") as f:
-                data = yaml.safe_load(f)
-
-            st.session_state["pending_yaml"] = data
-            st.session_state["auto_yaml_loaded"] = True
-            st.info(f"Loaded project: {os.path.basename(yaml_path)}")
-            st.rerun()
-
-        except Exception as e:
-            st.warning(f"Found YAML but failed to load it: {e}")
-
-# ============================================================
-# MAIN PAGE
-# ============================================================
+# --------------------------------------------------
+# Main
+# --------------------------------------------------
 st.title("pySimBlocks Editor")
-
-render_project_settings(registry)
-st.markdown("---")
-render_blocks(registry, categories, st.session_state["blocks"])
-st.markdown("---")
-render_connections(st.session_state["blocks"], st.session_state["connections"])
-st.markdown("---")
-dt, T, signals_logged = render_simulation_settings()
-st.markdown("---")
-logs = render_plots_definition(st.session_state["plots"], signals_logged)
-
-
-generate_yaml_content(
-    st.session_state["blocks"],
-    st.session_state["connections"],
-    dt, T, logs,
-    st.session_state["plots"]
-)
-
-if st.session_state.get("generated", False):
-    render_results()
-    render_generated_code()
+render_project_settings()
+st.divider()
+render_blocks(registry, categories)
+st.divider()
+render_connections(registry)
+st.session_state["available_outputs"] = compute_available_outputs(registry)
+st.divider()
+render_simulation_settings()
+st.divider()
+render_plot_settings()
+st.divider()
+render_plot_results()
+st.divider()
+render_codegen()
 
 
-# ============================================================
-# UI layout
-# ============================================================
+# --------------------------------------------------
+# SIDE BAR
+# --------------------------------------------------
 with st.sidebar:
     render_action()
-    st.markdown("---")
-    render_diagram(st.session_state["blocks"], st.session_state["connections"])
-    st.markdown("---")
-    render_workspace()
+    st.divider()
+    render_diagram()
+    st.divider()
+    render_external_paramaters()
+
+
+def _cleanup_temp():
+    project_dir = st.session_state.get("project_dir")
+    if project_dir:
+        temp = Path(project_dir) / ".temp"
+        if temp.exists():
+            shutil.rmtree(temp)
+
+atexit.register(_cleanup_temp)

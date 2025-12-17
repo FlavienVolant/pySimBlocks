@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 from typing import Dict, Any, Tuple
 import yaml
+from fractions import Fraction
 from pySimBlocks.core.config import ModelConfig, SimulationConfig
 
 # ---------------------------------------------------------------------
@@ -71,6 +72,58 @@ def _check_no_external_refs(obj):
         for v in obj.values():
             _check_no_external_refs(v)
 
+
+def parse_numeric(value):
+    """
+    Parse numeric values from YAML.
+    Supports:
+      - int
+      - float
+      - fractions as strings: "a/b"
+    Preserves integers when possible.
+    """
+    # Already numeric → keep type
+    if isinstance(value, int):
+        return value
+
+    if isinstance(value, float):
+        return value
+
+    if isinstance(value, str):
+        value = value.strip()
+
+        # Fraction
+        if "/" in value:
+            try:
+                return float(Fraction(value))
+            except Exception:
+                raise ValueError(f"Invalid fraction expression: '{value}'")
+
+        # Integer string
+        if value.isdigit() or (value.startswith("-") and value[1:].isdigit()):
+            return int(value)
+
+        # Float string
+        try:
+            return float(value)
+        except ValueError:
+            raise ValueError(f"Invalid numeric value: '{value}'")
+
+    raise TypeError(f"Unsupported numeric type: {type(value)}")
+
+
+def parse_numeric_recursive(obj):
+    """
+    Recursively parse numeric values in dicts / lists.
+    """
+    if isinstance(obj, dict):
+        return {k: parse_numeric_recursive(v) for k, v in obj.items()}
+
+    if isinstance(obj, list):
+        return [parse_numeric_recursive(v) for v in obj]
+
+    return parse_numeric(obj)
+
 # ---------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------
@@ -132,6 +185,8 @@ def load_simulation_config(
             f"Missing required simulation parameters: {sorted(missing)}"
         )
 
+    sim_data = parse_numeric_recursive(sim_data)
+
     sim_cfg = SimulationConfig(
         dt=sim_data["dt"],
         T=sim_data["T"],
@@ -146,6 +201,7 @@ def load_simulation_config(
     # ModelConfig
     # ------------------------------------------------------------
     blocks_data = resolved.get("blocks", {})
+    blocks_data = parse_numeric_recursive(blocks_data)
     if not isinstance(blocks_data, dict):
         raise ValueError("'blocks' section must be a mapping")
 

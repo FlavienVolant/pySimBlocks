@@ -1,59 +1,316 @@
 import streamlit as st
-import numpy as np
+from typing import Dict
 
-from pySimBlocks.gui.cleanup_logs_plot import cleanup_logs_and_plots
+from pySimBlocks.tools.blocks_registry import BlockMeta
+from pySimBlocks.gui.helpers import parse_yaml_value
 
-# ============================================================
+
+# ---------------------------------------------------------------
 # Helpers
-# ============================================================
-def unique_block_name(name, existing):
-    if name not in existing:
-        return name
-    i = 1
-    new = f"{name}_{i}"
-    while new in existing:
-        i += 1
-        new = f"{name}_{i}"
-    return new
+# ---------------------------------------------------------------
+def _param_is_visible(pname, pmeta: dict, values: dict) -> bool:
+    depends_on = pmeta.get("depends_on")
+    if not depends_on:
+        return True
+
+    dep_param = depends_on.get("parameter")
+    allowed_values = depends_on.get("values", [])
+
+    if dep_param is None:
+        return True  # malformed metadata → be permissive
+
+    current_value = values.get(dep_param)
+
+    if current_value is None:
+        return False
+
+    return current_value in allowed_values
 
 
-def clear_param_state(prefix="param_"):
-    for key in list(st.session_state.keys()):
-        if key.startswith(prefix):
-            del st.session_state[key]
-
-def parse_array(text):
-    if text is None or text.strip() == "":
-        return None
-    text = text.strip()
-
-    # simple list
-    if "," in text and "[" not in text and ";" not in text:
-        try:
-            return [float(x.strip()) for x in text.split(",")]
-        except:
-            pass
-
-    # python literal
-    try:
-        val = eval(text, {"__builtins__":{}})
-        return np.array(val).tolist()
-    except:
-        pass
-
-    # semicolon matrix
-    if ";" in text:
-        rows = text.split(";")
-        return [list(map(float, r.split(","))) for r in rows]
-
-    return text
+# ---------------------------------------------------------------
+# Callbacks
+# ---------------------------------------------------------------
+def _param_default_as_str(pmeta: dict) -> str:
+    default = pmeta.get("default", "")
+    required = pmeta.get("required", True)
+    autofill = pmeta.get("autofill", False)
+    if required or autofill:
+        if default is not None:
+            return str(default)
+    return ""
 
 
-# ============================================================
-# Existing blocks list
-# ============================================================
-def render_block_list(blocks):
+def _reset_add_block_form(key_prefix, meta, block_type):
+    # reset name
+    st.session_state[f"{key_prefix}::name"] = block_type
 
+    # reset parameters (AS STRING)
+    for pname, pmeta in meta.parameters.items():
+        st.session_state[f"{key_prefix}::param::{pname}"] = _param_default_as_str(pmeta)
+
+
+def _add_block(key_prefix, block_type, block_name, values, model_yaml):
+    existing = st.session_state["parameters_yaml"]["blocks"].keys()
+    if block_name not in existing:
+            unique_name = block_name
+    else:
+        i = 1
+        while f"{block_name}_{i}" in existing:
+            i += 1
+
+        unique_name = f"{block_name}_{i}"
+
+    model_yaml = dict(model_yaml)
+    model_yaml["name"] = unique_name
+
+    st.session_state["parameters_yaml"]["blocks"][unique_name] = values
+    st.session_state["model_yaml"]["blocks"].append(model_yaml)
+    st.session_state[f"{key_prefix}::name"] = block_type
+
+
+
+def _save_block(edit_index, old_name, new_name, values, model_yaml):
+    # update parameters
+    params = st.session_state["parameters_yaml"]["blocks"]
+    params.pop(old_name)
+    params[new_name] = values
+
+    # update model block
+    st.session_state["model_yaml"]["blocks"][edit_index] = model_yaml
+
+    # exit edit mode
+    st.session_state["edit_block"] = None
+
+
+def _delete_block(block_index, block_name):
+    model_yaml = st.session_state["model_yaml"]
+    params_yaml = st.session_state["parameters_yaml"]
+
+    # --------------------------------------------------
+    # 1. Remove block from model
+    # --------------------------------------------------
+    model_yaml["blocks"].pop(block_index)
+
+    # --------------------------------------------------
+    # 2. Remove parameters
+    # --------------------------------------------------
+    params_yaml.get("blocks", {}).pop(block_name, None)
+
+    # --------------------------------------------------
+    # 3. Remove related connections
+    # --------------------------------------------------
+    connections = model_yaml.get("connections", [])
+    model_yaml["connections"] = [
+        c for c in connections
+        if not (
+            c[0].startswith(f"{block_name}.")
+            or c[1].startswith(f"{block_name}.")
+        )
+    ]
+
+    # --------------------------------------------------
+    # 4. Remove related logged signals
+    # --------------------------------------------------
+    logged = params_yaml.get("logging", [])
+    params_yaml["logging"] = [
+        s for s in logged if not s.startswith(f"{block_name}.")
+    ]
+
+    # --------------------------------------------------
+    # 5. Update plots
+    # --------------------------------------------------
+    plots = params_yaml.get("plots", [])
+    cleaned_plots = []
+
+    for p in plots:
+        # remove signals from this block
+        new_signals = [
+            s for s in p.get("signals", [])
+            if not s.startswith(f"{block_name}.")
+        ]
+
+        # keep plot only if it still has signals
+        if new_signals:
+            cleaned_plots.append({
+                "title": p["title"],
+                "signals": new_signals,
+            })
+
+    params_yaml["plots"] = cleaned_plots
+
+    # --------------------------------------------------
+    # 6. Exit edit mode if needed
+    # --------------------------------------------------
+    edit_ctx = st.session_state.get("edit_block")
+    if edit_ctx and edit_ctx.get("name") == block_name:
+        st.session_state["edit_block"] = None
+
+
+
+
+# ---------------------------------------------------------------
+# Renderer
+# ---------------------------------------------------------------
+def add_block_editor(registry, categories):
+    st.header("Add Block")
+
+    edit_ctx = st.session_state.get("edit_block")
+    is_edit = edit_ctx is not None
+
+    if is_edit and edit_ctx.get("load_form", False):
+        category = edit_ctx["category"]
+        block_type = edit_ctx["type"]
+        meta = registry[category][block_type]
+        key_prefix = f"addblock::{category}::{block_type}"
+
+        params = st.session_state["parameters_yaml"]["blocks"].get(
+            edit_ctx["name"], {}
+        )
+
+        # --- LOAD FORM STATE BEFORE WIDGETS ---
+        st.session_state[f"{key_prefix}::name"] = edit_ctx["name"]
+        for pname, pmeta in meta.parameters.items():
+            val = params.get(pname, pmeta.get("default", ""))
+            st.session_state[f"{key_prefix}::param::{pname}"] = "" if val is None else str(val)
+
+        # clear flag so it runs only once
+        st.session_state["edit_block"]["load_form"] = False
+
+
+    if not is_edit:
+        category = st.selectbox("Category", categories)
+        block_types = sorted(registry[category].keys())
+        block_type = st.selectbox("Block type", block_types)
+    else:
+        category = edit_ctx["category"]
+        block_type = edit_ctx["type"]
+        st.info(f"Editing block: **{edit_ctx['name']}** ({category} / {block_type})")
+
+    meta: BlockMeta = registry[category][block_type]
+
+    if not is_edit:
+        key_prefix = f"addblock::{category}::{block_type}"
+
+        if f"{key_prefix}::initialized" not in st.session_state:
+            st.session_state[f"{key_prefix}::name"] = block_type
+
+            for pname, pmeta in meta.parameters.items():
+                st.session_state[f"{key_prefix}::param::{pname}"] = _param_default_as_str(pmeta)
+
+            st.session_state[f"{key_prefix}::initialized"] = True
+
+
+    st.markdown(f"**{meta.name}**")
+    st.caption(meta.summary)
+
+    if meta.doc_path:
+        with st.expander("Block documentation"):
+            st.markdown(meta.doc_path.read_text())
+
+    st.divider()
+
+    # ------------------------------------------------------------
+    # 3. Block name
+    # ------------------------------------------------------------
+    key_prefix = f"addblock::{category}::{block_type}"
+    default_name = edit_ctx["name"] if is_edit else block_type
+    block_name = st.text_input(
+        "Block instance name",
+        value=default_name,
+        key=f"{key_prefix}::name",
+    )
+
+
+    if not block_name:
+        st.warning("Block name is required.")
+        return
+
+    # ------------------------------------------------------------
+    # 4. Parameters
+    # ------------------------------------------------------------
+    st.subheader("Parameters")
+    existing_params = {}
+    if is_edit:
+        existing_params = st.session_state["parameters_yaml"]["blocks"].get(
+            edit_ctx["name"], {}
+        )
+    values: Dict[str, str] = {}
+
+    # ---- pass 1: enums (needed for dependencies)
+    for pname, pmeta in meta.parameters.items():
+        default = existing_params.get(pname, pmeta.get("default", ""))
+        if pmeta.get("type") == "enum":
+            options = pmeta.get("enum", [])
+
+            value = st.selectbox(
+                pname,
+                options,
+                index = options.index(default) if default in options else 0,
+                help=pmeta.get("description", ""),
+                key=f"{key_prefix}::param::{pname}",
+        )
+        else:
+            if not _param_is_visible(pname, pmeta, values):
+                values.pop(pname, None)
+                continue
+
+            value = st.text_input(
+                pname,
+                help=pmeta.get("description", ""),
+                key=f"{key_prefix}::param::{pname}",
+            )
+
+        if pmeta.get("required", False) and value.strip() == "":
+            st.warning(f"Parameter '{pname}' is required.")
+
+
+        parsed = parse_yaml_value(value)
+        if parsed is None:
+            values.pop(pname, None)
+        else:
+            values[pname] = parsed
+
+    # ------------------------------------------------------------
+    # 5. Buttons
+    # ------------------------------------------------------------
+    model_yaml = {
+            "name": block_name,
+            "category": meta.category,
+            "type": meta.type,
+        }
+    col_main, col_reset = st.columns([3, 1])
+
+    if not is_edit:
+        col_main.button(
+            "Add block",
+            on_click=_add_block,
+            args=(key_prefix, block_type, block_name, values, model_yaml),
+        )
+    else:
+        col_main.button(
+            "Save block",
+            on_click=_save_block,
+            args=(
+                edit_ctx["index"],
+                edit_ctx["name"],
+                block_name,
+                values,
+                model_yaml,
+            ),
+        )
+
+    col_reset.button(
+        "Reset",
+        on_click=_reset_add_block_form,
+        args=(key_prefix, meta, block_type),
+    )
+
+
+
+def render_block_list(registry):
+
+    model_yaml = st.session_state.get("model_yaml", {})
+    blocks = model_yaml['blocks']
     with st.expander("Existing Blocks"):
 
         if not blocks:
@@ -64,294 +321,21 @@ def render_block_list(blocks):
             cols = st.columns([3, 1, 1])
 
             cols[0].write(f"**{b['name']}** ({b['type']})")
-
             if cols[1].button("Edit", key=f"edit_block_{i}"):
-                st.session_state["edit_block_index"] = i
+                st.session_state["edit_block"] = {
+                    "index": i,
+                    "name": b["name"],
+                    "category": b["category"],
+                    "type": b["type"],
+                    "load_form": True,
+                }
                 st.rerun()
 
             if cols[2].button("Delete", key=f"delete_block_{i}"):
-                name = b["name"]
-                st.session_state["connections"] = [
-                    c for c in st.session_state["connections"]
-                    if c[0] != name and c[2] != name
-                ]
-                blocks.pop(i)
-                cleanup_logs_and_plots()
+                _delete_block(i, b["name"])
                 st.rerun()
 
 
-# ============================================================
-# Parameter widget generator
-# ============================================================
-def render_param_form(block_registry, block_type, filled=None):
-    filled = filled or {}
-    params = block_registry[block_type]["parameters"]
-    values = {}
-
-    for p in params:
-        name = p["name"]
-        typ  = p["type"]
-        optional = p.get("optional", False)
-        label = f"{name} (optional)" if optional else name
-        default = filled.get(name, "")
-
-        key = f"param_{name}"
-
-        # initialize the entry in session_state
-        if key not in st.session_state or st.session_state[key] == "":
-            st.session_state[key] = default
-
-        # Retrieve raw value
-        raw = st.session_state.get(key)
-
-        # ALWAYS convert non-string values to string for text widgets
-        def ensure_string():
-            r = st.session_state[key]
-            if not isinstance(r, str):
-                r = str(r)
-                st.session_state[key] = r
-            return r
-
-        # --------------------------------------------------------
-        # CASE 1: multiple possible types → text_input only
-        # e.g. "float | array | matrix"
-        # --------------------------------------------------------
-        if "|" in typ:
-            raw = ensure_string()
-            values[name] = st.text_input(label, value=raw, key=key)
-            continue
-
-        # --------------------------------------------------------
-        # CASE 2: integer only
-        # --------------------------------------------------------
-        if typ.strip() == "int":
-            try:
-                init = int(raw)
-            except:
-                init = 1
-                st.session_state[key] = 1
-            values[name] = st.number_input(label, value=init, key=key)
-            continue
-
-        # --------------------------------------------------------
-        # CASE 3: float only
-        # --------------------------------------------------------
-        if typ.strip() == "float":
-            try:
-                init = float(raw)
-            except:
-                init = 0.0
-                st.session_state[key] = 0.0
-            values[name] = st.number_input(label, value=init, key=key)
-            continue
-
-        # --------------------------------------------------------
-        # CASE 4: matrix or array → text_area forced string
-        # --------------------------------------------------------
-        if typ in ["array", "matrix"]:
-            raw = ensure_string()
-            values[name] = st.text_area(label, value=raw, key=key)
-            continue
-
-        # --------------------------------------------------------
-        # DEFAULT: treat as text
-        # --------------------------------------------------------
-        raw = ensure_string()
-        values[name] = st.text_input(label, value=raw, key=key)
-
-    return values
-
-
-# ============================================================
-# Build block instance object
-# ============================================================
-def compute_block_instance(block_registry, block_type, category, name, params):
-    reg = block_registry[block_type]
-    ws  = st.session_state["workspace"]
-
-    parsed = {}
-
-    for k, v in params.items():
-
-        # --------------------------------------------------
-        # Workspace reference (=var)
-        # --------------------------------------------------
-        if isinstance(v, str) and v.strip().startswith("="):
-            varname = v.strip()[1:].strip()
-            if varname not in ws:
-                st.error(f"Workspace variable '{varname}' not found")
-                st.stop()
-            val = ws[varname]
-            if hasattr(val, "tolist"):
-                val = val.tolist()
-            parsed[k] = val
-            continue
-
-        # --------------------------------------------------
-        # Array or matrix literal
-        # --------------------------------------------------
-        if isinstance(v, str) and any(s in v for s in ["[", ",", ";"]):
-            parsed[k] = parse_array(v)
-            continue
-
-        # --------------------------------------------------
-        # Numeric literals ONLY (int / float literals)
-        # --------------------------------------------------
-        if isinstance(v, str):
-            txt = v.strip()
-
-            # integer literal
-            if txt.isdigit() or (txt.startswith("-") and txt[1:].isdigit()):
-                parsed[k] = int(txt)
-                continue
-
-            # float literal ONLY (no expressions!)
-            if "." in txt or "e" in txt.lower():
-                try:
-                    parsed[k] = float(txt)
-                    continue
-                except ValueError:
-                    pass
-
-        # --------------------------------------------------
-        # Expression or fallback → keep as-is
-        # --------------------------------------------------
-        parsed[k] = v
-
-    # --------------------------------------------------
-    # Inputs
-    # --------------------------------------------------
-    reg_in = reg["inputs"]
-
-    if reg_in["dynamic"] == "indexed":
-        N = int(parsed["num_inputs"])
-        inputs = [reg_in["pattern"].format(i+1) for i in range(N)]
-
-    elif reg_in["dynamic"] == "specified":
-        key_param = reg_in["parameter"]
-        inputs = parsed[key_param]
-
-    else:
-        inputs = reg_in["ports"]
-
-    # --------------------------------------------------
-    # Outputs
-    # --------------------------------------------------
-    reg_out = reg["outputs"]
-
-    if reg_out["dynamic"] == "indexed":
-        N = int(parsed["num_outputs"])
-        outputs = [reg_out["pattern"].format(i+1) for i in range(N)]
-
-    elif reg_out["dynamic"] == "specified":
-        key_param = reg_out["parameter"]
-        outputs = parsed[key_param]
-
-    else:
-        outputs = reg_out["ports"]
-
-    # --------------------------------------------------
-    # Name generation
-    # --------------------------------------------------
-    final_name = name.strip() or block_type
-    existing = [b["name"] for b in st.session_state["blocks"]]
-
-    if st.session_state["edit_block_index"] is not None:
-        idx = st.session_state["edit_block_index"]
-        existing = [nm for j, nm in enumerate(existing) if j != idx]
-
-    final_name = unique_block_name(final_name, existing)
-
-    return {
-        "name": final_name,
-        "from": category,
-        "type": block_type,
-        "parameters": parsed,
-        "computed_inputs": inputs,
-        "computed_outputs": outputs,
-    }
-
-
-
-# ============================================================
-# Main UI section
-# ============================================================
-def render_block_form(block_registry, categories, blocks):
-
-    st.header("Add / Edit Block")
-
-    # ============================================================
-    # EDIT MODE
-    # ============================================================
-    if st.session_state["edit_block_index"] is not None:
-        idx = st.session_state["edit_block_index"]
-        blk = blocks[idx]
-
-        st.info(f"Editing block {blk['name']}")
-
-        block_name = st.text_input("Block name", blk["name"])
-        category   = blk["from"]
-        st.write(f"Category: {category}")
-
-        types = [t for t, v in block_registry.items() if v["category"] == category]
-        block_type = st.selectbox("Type", types, index=types.index(blk["type"]))
-
-        params = render_param_form(block_registry, block_type, blk["parameters"])
-
-        if st.button("Save block"):
-            blocks[idx] = compute_block_instance(block_registry, block_type, category, block_name, params)
-            st.session_state["edit_block_index"] = None
-            clear_param_state()
-            st.rerun()
-
-        if st.button("Cancel"):
-            st.session_state["edit_block_index"] = None
-            clear_param_state()
-            st.rerun()
-
-        return
-
-    # ============================================================
-    # ADD MODE
-    # ============================================================
-
-    # ---------- PRE-WIDGET CLEANUP ----------
-    if st.session_state.get("clear_block_name_next", False):
-        st.session_state["new_block_name"] = ""
-        st.session_state["clear_block_name_next"] = False
-
-    if st.session_state.get("clear_params_next", False):
-        clear_param_state()
-        st.session_state["clear_params_next"] = False
-
-    # ---------- ADD WIDGETS ----------
-    block_name = st.text_input("Block name", key="new_block_name")
-
-    category = st.selectbox("Category", categories, key="new_block_category")
-    types = [t for t, v in block_registry.items() if v["category"] == category]
-    block_type = st.selectbox("Type", types, key="new_block_type")
-
-    params = render_param_form(block_registry, block_type)
-
-    col_add, col_reset = st.columns([3,1])
-
-    # ---------- ADD BLOCK ----------
-    if col_add.button("Add block"):
-        blk = compute_block_instance(block_registry, block_type, category, block_name, params)
-        blocks.append(blk)
-
-        st.session_state["clear_block_name_next"] = True
-        st.rerun()
-
-    # ---------- RESET ----------
-    if col_reset.button("Reset fields"):
-        st.session_state["clear_params_next"] = True
-        st.session_state["clear_block_name_next"] = True
-        st.rerun()
-
-# ============================================================
-# Main UI section
-# ============================================================
-def render_blocks(block_registry, categories, blocks):
-    render_block_form(block_registry, categories, blocks)
-    render_block_list(blocks)
+def render_blocks(registry, categories):
+    add_block_editor(registry, categories)
+    render_block_list(registry)

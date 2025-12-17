@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.scripts]
-pysimblocks = "pySimBlocks.api.launch:main"
+pysimblocks = "pySimBlocks.gui.launch:main"
 pysimblocks-generate = "pySimBlocks.project.generate:main"
 pysimblocks-update = "pySimBlocks.tools.cli:main"
 

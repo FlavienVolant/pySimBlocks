@@ -1,47 +1,161 @@
-import streamlit as st
-from pySimBlocks.gui.codegen import generate_python_content
-from pySimBlocks.gui.ui_run_sim import run_simulation
-from pySimBlocks.gui.project_export import project_export, save_yaml_content
-from pySimBlocks.gui.run_sofa import sofa_launcher_ui
+import shutil
+import os
+from pathlib import Path
 
+import streamlit as st
+
+from pySimBlocks.gui.helpers import dump_yaml, dump_model_yaml
+from pySimBlocks.project.generate_run_script import generate_python_content
+
+
+# ===============================================================
+# Public entry point
+# ===============================================================
 
 def render_action():
-
-    yaml_data = st.session_state.get("yaml_data", None)
-
-    sofa_blocks = [
-            b for b in yaml_data["blocks"]
-            if b["type"].lower() in ["sofa_plant", "sofa_exchange_i_o"]
-        ]
-
-    if len(sofa_blocks) > 0:
-        export_mode = st.selectbox(
-            "Export mode",
-            ["all", "controller-only", "cli-only"],
-            index=0
-        )
-    else:
-        export_mode = "all"
-
     st.header("Actions")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Show Generated Files"):
-            generate_python_content(yaml_data)
 
-    with col2:
-        if st.button("Run Simulation"):
-            run_simulation(yaml_data)
+    col_run, col_save, col_export = st.columns(3)
 
-    st.subheader("Saving")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Save project", help="Save the editable YAML projects"):
-            save_yaml_content(yaml_data)
-    with col2:
-        if st.button("Export Project", help="Save the project (YAML) and generate Python files for CLI execution"):
-            project_export(yaml_data, export_mode)
+    with col_run:
+        if st.button("Run Simulation", help="Run simulation in a temporary folder"):
+            _run_simulation()
+        status = st.session_state.get("simulation_status")
 
-    if len(sofa_blocks) > 0:
-        scene_file = sofa_blocks[0]["scene_file"]
-        sofa_launcher_ui(scene_file)
+        if status:
+            if status["state"] == "running":
+                st.info("Simulation running…")
+            elif status["state"] == "success":
+                st.success(status["message"])
+            elif status["state"] == "error":
+                st.error(f"Simulation failed: {status['message']}")
+
+    with col_save:
+        if st.button("Save YAML", help="Save model.yaml and parameters.yaml"):
+            _save_project_yaml()
+
+    with col_export:
+        if st.button(
+            "Export project",
+            help="Save YAML and generate run.py for CLI execution",
+        ):
+            _export_project()
+
+
+# ===============================================================
+# Core actions
+# ===============================================================
+def _run_simulation():
+    project_dir = _get_project_dir()
+    if project_dir is None:
+        return
+
+    # --------------------------------------------------
+    # Init status
+    # --------------------------------------------------
+    st.session_state["simulation_status"] = {
+        "state": "running",
+        "message": None,
+    }
+
+    temp_dir = project_dir / ".temp"
+
+    if temp_dir.exists():
+        shutil.rmtree(temp_dir)
+    temp_dir.mkdir(parents=True)
+
+    _write_yaml_files(temp_dir)
+
+    model_path = temp_dir / "model.yaml"
+    param_path = temp_dir / "parameters.yaml"
+
+    code = generate_python_content(
+        model_yaml_path=str(model_path),
+        parameters_yaml_path=str(param_path),
+        enable_plots=False
+    )
+
+    old_cwd = os.getcwd()
+    try:
+        env = {}
+        os.chdir(temp_dir)
+
+        exec(code, env, env)
+
+        logs = env.get("logs")
+        if logs is None:
+            raise RuntimeError("Simulation did not produce logs")
+
+        st.session_state["simulation_logs"] = logs
+        st.session_state["simulation_done"] = True
+        st.session_state["simulation_status"] = {
+            "state": "success",
+            "message": "Simulation completed successfully.",
+        }
+
+    except Exception as e:
+        st.session_state["simulation_done"] = False
+        st.session_state["simulation_status"] = {
+            "state": "error",
+            "message": str(e),
+        }
+
+    finally:
+        os.chdir(old_cwd)
+
+
+
+def _save_project_yaml():
+    project_dir = _get_project_dir()
+    if project_dir is None:
+        return
+
+    _write_yaml_files(project_dir)
+    st.success("YAML files saved")
+
+
+def _export_project():
+    project_dir = _get_project_dir()
+    if project_dir is None:
+        return
+
+    _write_yaml_files(project_dir)
+
+    model_path = project_dir / "model.yaml"
+    param_path = project_dir / "parameters.yaml"
+
+    run_py = project_dir / "run.py"
+    run_py.write_text(
+        generate_python_content(
+            model_yaml_path="model.yaml",
+            parameters_yaml_path="parameters.yaml",
+        )
+    )
+
+    st.success("Project exported (YAML + run.py)")
+
+
+# ===============================================================
+# Helpers
+# ===============================================================
+
+def _get_project_dir() -> Path | None:
+    project_dir = st.session_state.get("project_dir")
+    if not project_dir:
+        st.error("Please set a project directory first.")
+        return None
+    return Path(project_dir)
+
+
+def _write_yaml_files(directory: Path):
+    params_yaml = st.session_state.get("parameters_yaml", {})
+    model_yaml = st.session_state.get("model_yaml", {})
+
+    directory.mkdir(parents=True, exist_ok=True)
+
+    (directory / "parameters.yaml").write_text(
+        dump_yaml(params_yaml)
+    )
+    (directory / "model.yaml").write_text(
+        dump_model_yaml(model_yaml)
+    )

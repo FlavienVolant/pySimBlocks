@@ -1,18 +1,18 @@
 blocks:
   - name: step
-    from: sources
+    category: sources
     type: step
 
   - name: error
-    from: operators
+    category: operators
     type: sum
 
   - name: pid
-    from: controllers
+    category: controllers
     type: pid
 
   - name: sofa
-    from: systems
+    category: systems
     type: sofa_plant
 
 connections:

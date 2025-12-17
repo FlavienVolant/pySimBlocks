@@ -1,67 +1,26 @@
 import streamlit as st
+from pySimBlocks.gui.helpers import parse_yaml_value
 
-def is_numeric_literal(txt: str) -> bool:
-    """
-    Return True if txt is a pure numeric literal (int or float),
-    NOT an expression like 1/60 or 2*dt.
-    """
-    txt = txt.strip()
 
-    # reject obvious expressions
-    if any(op in txt for op in ["/", "*", "+"]):
-        return False
-
-    try:
-        float(txt)
-        return True
-    except ValueError:
-        return False
 
 def render_simulation_settings():
     st.header("Simulation Settings")
 
-    dt_raw = st.text_input(
-        "dt",
-        value=st.session_state.get("dt_raw", "0.01")
-    )
-    T_raw = st.text_input(
-        "T",
-        value=st.session_state.get("T_raw", "2.0")
-    )
+    parameters_yaml = st.session_state.get("parameters_yaml", {})
+    sim_setting = parameters_yaml.get("simulation", {})
+    dt_init = sim_setting.get("dt", 0.1)
+    T_init = sim_setting.get("T", 10.)
 
-    st.session_state["dt_raw"] = dt_raw
-    st.session_state["T_raw"] = T_raw
+    dt = st.text_input("dt", value=dt_init)
+    T = st.text_input("T sim", value=T_init)
 
-    def normalize(expr):
-        expr = expr.strip()
-        if is_numeric_literal(expr):
-            if "." in expr or "e" in expr.lower():
-                return float(expr)
-            else:
-                return int(expr)
-        return expr  # keep expression
+    st.session_state["parameters_yaml"]["simulation"]["dt"] = parse_yaml_value(dt)
+    st.session_state["parameters_yaml"]["simulation"]["T"] = parse_yaml_value(T)
 
-    dt = normalize(dt_raw)
-    T  = normalize(T_raw)
-
-    signals = [
-        f"{b['name']}.outputs.{p}"
-        for b in st.session_state["blocks"]
-        for p in b["computed_outputs"]
-    ]
-
+    available = st.session_state.get("available_outputs", [])
     signals_logged = st.multiselect(
         "Signals to log",
-        signals,
-        default=st.session_state.get("logs_loaded", [])
+        available,
+        default=st.session_state["parameters_yaml"].get("logging", []),
     )
-
-    # --------------------------------------------------
-    # FORCE RERUN IF LOGGED SIGNALS CHANGED
-    # --------------------------------------------------
-    prev = st.session_state.get("logs_loaded", [])
-    if set(signals_logged) != set(prev):
-        st.session_state["logs_loaded"] = list(signals_logged)
-        st.rerun()
-
-    return dt, T, signals_logged
+    st.session_state["parameters_yaml"]["logging"] = signals_logged

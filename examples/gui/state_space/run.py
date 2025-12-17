@@ -1,53 +1,17 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from model import simulator, T, dt
+from pySimBlocks.core import Model, Simulator
+from pySimBlocks.project.load_project_config import load_project_config
+from pySimBlocks.project.plot_from_config import plot_from_config
 
-logs = simulator.run(T=T, variables_to_log=[
-    'C.outputs.out',
-    'delay.outputs.out',
-    'step.outputs.out',
-    'plant.outputs.x',
-    'plant.outputs.y',
-])
-print('Simulation complete.')
+sim_cfg, model_cfg, plot_cfg = load_project_config("parameters.yaml")
 
-length = len(next(iter(logs.values())))
-time = np.array(logs['time'])
+model = Model(
+    name="model",
+    model_yaml="model.yaml",
+    model_cfg=model_cfg
+)
 
-plt.figure()
-plant_outputs_x = np.array(logs['plant.outputs.x']).reshape(length, -1)
-for i in range(plant_outputs_x.shape[1]):
-    plt.step(time, plant_outputs_x[:, i], where='post', label='plant_outputs_x'+str(i))
-delay_outputs_out = np.array(logs['delay.outputs.out']).reshape(length, -1)
-for i in range(delay_outputs_out.shape[1]):
-    plt.step(time, delay_outputs_out[:, i], where='post', label='delay_outputs_out'+str(i))
-plt.xlabel('Time [s]')
-plt.ylabel('Values')
-plt.title('States')
-plt.legend()
-plt.grid()
+sim = Simulator(model, sim_cfg)
 
-plt.figure()
-C_outputs_out = np.array(logs['C.outputs.out']).reshape(length, -1)
-for i in range(C_outputs_out.shape[1]):
-    plt.step(time, C_outputs_out[:, i], where='post', label='C_outputs_out'+str(i))
-plant_outputs_y = np.array(logs['plant.outputs.y']).reshape(length, -1)
-for i in range(plant_outputs_y.shape[1]):
-    plt.step(time, plant_outputs_y[:, i], where='post', label='plant_outputs_y'+str(i))
-plt.xlabel('Time [s]')
-plt.ylabel('Values')
-plt.title('Outputs')
-plt.legend()
-plt.grid()
-
-plt.figure()
-step_outputs_out = np.array(logs['step.outputs.out']).reshape(length, -1)
-for i in range(step_outputs_out.shape[1]):
-    plt.step(time, step_outputs_out[:, i], where='post', label='step_outputs_out'+str(i))
-plt.xlabel('Time [s]')
-plt.ylabel('Values')
-plt.title('Command')
-plt.legend()
-plt.grid()
-
-plt.show()
+logs = sim.run()
+if True:
+    plot_from_config(logs, plot_cfg)
