@@ -143,20 +143,25 @@ class Simulator:
     # ----------------------------------------------------------------------
     def step(self):
 
-        dt = self.time_manager.next_dt(self.t)
+        dt_scheduler = self.time_manager.next_dt(self.t)
         active_tasks = self.scheduler.active_tasks(self.t)
+
+        print(f"time: {self.t}; dt: {dt_scheduler}, active_tasks: {active_tasks}")
 
         # PHASE 1 — outputs
         for task in active_tasks:
+            dt_task = task.get_dt(self.t)
             for block in task.output_blocks:
-                block.output_update(self.t, dt)
+                print(f"\tBlock: {block.name} with dt: {dt_task}")
+                block.output_update(self.t, dt_task)
                 self._propagate_from(block)
 
 
         # PHASE 2 — states
         for task in active_tasks:
+            dt_task = task.get_dt(self.t)
             for block in task.state_blocks:
-                block.state_update(self.t, dt)
+                block.state_update(self.t, dt_task)
 
         for task in active_tasks:
             for block in task.state_blocks:
@@ -166,7 +171,7 @@ class Simulator:
             task.advance()
 
         self.t_step = self.t
-        self.t += dt
+        self.t += dt_scheduler
 
 
     # ----------------------------------------------------------------------
