@@ -1,6 +1,6 @@
 name: SofaExchangeIO
 category: systems
-type: sofa_exchange_io
+type: sofa_exchange_i_o
 
 summary: >
   Interface block for exchanging signals between pySimBlocks and SOFA.

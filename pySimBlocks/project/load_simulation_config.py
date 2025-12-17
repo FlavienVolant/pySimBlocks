@@ -112,9 +112,12 @@ def parse_numeric(value):
     raise TypeError(f"Unsupported numeric type: {type(value)}")
 
 
+
 def parse_numeric_recursive(obj):
     """
-    Recursively parse numeric values in dicts / lists.
+    Recursively parse numeric values.
+    Only parses values that are numeric-like.
+    Leaves strings untouched unless they are valid numeric expressions.
     """
     if isinstance(obj, dict):
         return {k: parse_numeric_recursive(v) for k, v in obj.items()}
@@ -122,7 +125,15 @@ def parse_numeric_recursive(obj):
     if isinstance(obj, list):
         return [parse_numeric_recursive(v) for v in obj]
 
-    return parse_numeric(obj)
+    # Only parse numeric-like strings
+    if isinstance(obj, str):
+        try:
+            return parse_numeric(obj)
+        except (ValueError, TypeError):
+            return obj  # keep string as-is
+
+    return obj
+
 
 # ---------------------------------------------------------------------
 # Public API

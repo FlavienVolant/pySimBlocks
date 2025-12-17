@@ -80,6 +80,26 @@ def detect_controller_file_from_scene(scene_file):
     return Path(controller_path)
 
 
+def inject_base_dir(src: str) -> str:
+    if "BASE_DIR = Path(__file__).resolve().parent" in src:
+        return src
+
+    injection = (
+        "from pathlib import Path\n\n"
+        "BASE_DIR = Path(__file__).resolve().parent\n\n"
+    )
+
+    # Cherche la fin du bloc d'import
+    import_block = list(re.finditer(r"^(import|from)\s+.+$", src, re.MULTILINE))
+
+    if import_block:
+        last = import_block[-1]
+        insert_at = last.end()
+        return src[:insert_at] + "\n\n" + injection + src[insert_at:]
+    else:
+        # Aucun import → injecter en tête
+        return injection + src
+
 def inject_yaml_paths_into_controller(
     controller_file: Path,
     model_yaml: Path,
@@ -90,18 +110,22 @@ def inject_yaml_paths_into_controller(
     inside the SofaPysimBlocksController __init__.
     """
     src = controller_file.read_text()
+    src = inject_base_dir(src)
 
-    def replace_or_add(attr, value):
-        pattern = rf"self\.{attr}\s*=\s*.*"
-        replacement = f'self.{attr} = "{value}"'
+    def replace_or_add(attr, rel_path):
+        expr = (
+            f'self.{attr} = str((BASE_DIR / "{rel_path}").resolve())'
+        )
+
+        pattern = rf"self\.{attr}\s*=.*"
         if re.search(pattern, src):
-            return re.sub(pattern, replacement, src)
+            return re.sub(pattern, expr, src)
         else:
-            # Insert after super().__init__()
             return src.replace(
                 "super().__init__(name=name)",
-                f'super().__init__(name=name)\n        {replacement}'
+                f"super().__init__(name=name)\n        {expr}"
             )
+
 
     controller_dir = controller_file.parent
     rel_model = os.path.relpath(model_yaml, controller_dir)

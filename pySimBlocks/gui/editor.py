@@ -15,6 +15,7 @@ from pySimBlocks.gui.ui_plot_results import render_plot_results
 from pySimBlocks.gui.ui_plot_settings import render_plot_settings
 from pySimBlocks.gui.ui_project_settings import render_project_settings
 from pySimBlocks.gui.ui_simulation_settings import render_simulation_settings
+from pySimBlocks.gui.ui_sofa import render_sofa_launcher, update_sofa_context
 from pySimBlocks.tools.blocks_registry import load_block_registry
 
 
@@ -70,12 +71,16 @@ render_plot_results()
 st.divider()
 render_codegen()
 
+update_sofa_context()
+
 
 # --------------------------------------------------
 # SIDE BAR
 # --------------------------------------------------
 with st.sidebar:
     render_action()
+    st.divider()
+    render_sofa_launcher()
     st.divider()
     render_diagram()
     st.divider()

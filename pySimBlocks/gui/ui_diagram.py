@@ -18,7 +18,6 @@ def render_diagram():
     # --------------------------------------------------
     dot = gv.Digraph(
         graph_attr={
-            "rankdir": "LR",
             "splines": "spline",
             "nodesep": "0.6",
             "ranksep": "0.8",

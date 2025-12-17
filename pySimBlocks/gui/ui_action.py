@@ -1,11 +1,13 @@
 import shutil
 import os
 from pathlib import Path
+import copy
 
 import streamlit as st
 
 from pySimBlocks.gui.helpers import dump_yaml, dump_model_yaml
 from pySimBlocks.project.generate_run_script import generate_python_content
+from pySimBlocks.project.generate_sofa_controller import generate_sofa_controller
 
 
 # ===============================================================
@@ -19,9 +21,9 @@ def render_action():
 
     with col_run:
         if st.button("Run Simulation", help="Run simulation in a temporary folder"):
-            _run_simulation()
+            ok = _run_simulation()
+            st.rerun()
         status = st.session_state.get("simulation_status")
-
         if status:
             if status["state"] == "running":
                 st.info("Simulation running…")
@@ -40,6 +42,10 @@ def render_action():
             help="Save YAML and generate run.py for CLI execution",
         ):
             _export_project()
+
+        if st.session_state.get("nb_sofa_blocks", 0) == 1:
+            if st.button("Export Controller", help="Save YAML and Write path on Controller."):
+                _export_sofa_controller()
 
 
 # ===============================================================
@@ -64,7 +70,7 @@ def _run_simulation():
         shutil.rmtree(temp_dir)
     temp_dir.mkdir(parents=True)
 
-    _write_yaml_files(temp_dir)
+    _write_yaml_files(temp_dir, True)
 
     model_path = temp_dir / "model.yaml"
     param_path = temp_dir / "parameters.yaml"
@@ -92,6 +98,7 @@ def _run_simulation():
             "state": "success",
             "message": "Simulation completed successfully.",
         }
+        return True
 
     except Exception as e:
         st.session_state["simulation_done"] = False
@@ -99,6 +106,7 @@ def _run_simulation():
             "state": "error",
             "message": str(e),
         }
+        return False
 
     finally:
         os.chdir(old_cwd)
@@ -121,15 +129,25 @@ def _export_project():
 
     _write_yaml_files(project_dir)
 
-    model_path = project_dir / "model.yaml"
-    param_path = project_dir / "parameters.yaml"
-
     run_py = project_dir / "run.py"
     run_py.write_text(
         generate_python_content(
             model_yaml_path="model.yaml",
             parameters_yaml_path="parameters.yaml",
         )
+    )
+
+    st.success("Project exported (YAML + run.py)")
+
+
+def _export_sofa_controller():
+    project_dir = _get_project_dir()
+    if project_dir is None:
+        return
+
+    _write_yaml_files(project_dir)
+    generate_sofa_controller(
+        project_dir,
     )
 
     st.success("Project exported (YAML + run.py)")
@@ -147,9 +165,15 @@ def _get_project_dir() -> Path | None:
     return Path(project_dir)
 
 
-def _write_yaml_files(directory: Path):
+def _write_yaml_files(directory: Path, temp=False):
     params_yaml = st.session_state.get("parameters_yaml", {})
     model_yaml = st.session_state.get("model_yaml", {})
+
+    if temp and "external" in params_yaml:
+        params_yaml = copy.deepcopy(params_yaml)
+        external_path = Path(params_yaml["external"]).resolve()
+        relative_external = os.path.relpath(external_path, directory)
+        params_yaml["external"] = relative_external
 
     directory.mkdir(parents=True, exist_ok=True)
 

@@ -27,6 +27,8 @@ def _param_is_visible(pname, pmeta: dict, values: dict) -> bool:
     return current_value in allowed_values
 
 
+
+
 # ---------------------------------------------------------------
 # Callbacks
 # ---------------------------------------------------------------
@@ -146,8 +148,6 @@ def _delete_block(block_index, block_name):
         st.session_state["edit_block"] = None
 
 
-
-
 # ---------------------------------------------------------------
 # Renderer
 # ---------------------------------------------------------------
@@ -208,7 +208,6 @@ def add_block_editor(registry, categories):
             st.markdown(meta.doc_path.read_text())
 
     st.divider()
-
     # ------------------------------------------------------------
     # 3. Block name
     # ------------------------------------------------------------

@@ -123,7 +123,7 @@ def adapt_model_for_sofa(model_yaml: Path) -> Dict[str, Any]:
         if block["type"].lower() == "sofa_plant":
             adapted_blocks.append({
                 "name": block["name"],
-                "from": "systems",
+                "category": "systems",
                 "type": "sofa_exchange_i_o",
             })
         else:
