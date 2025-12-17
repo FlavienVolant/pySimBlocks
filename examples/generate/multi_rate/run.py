@@ -13,4 +13,15 @@ model = Model(
 sim = Simulator(model, sim_cfg)
 
 logs = sim.run()
-plot_from_config(logs, plot_cfg)
+
+import numpy as np
+t = np.array(logs["time"])
+r1 = np.array(logs["ramp.outputs.out"])
+r2 = np.array(logs["ramp_1.outputs.out"])
+
+print(t.flatten())
+print(r1.flatten())
+print(r2.flatten())
+
+if True:
+    plot_from_config(logs, plot_cfg)

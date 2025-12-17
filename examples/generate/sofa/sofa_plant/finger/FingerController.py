@@ -3,13 +3,19 @@ from pySimBlocks.blocks.systems.sofa import SofaPysimBlocksController
 
 import Sofa
 
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+
+
+
 
 class FingerController(SofaPysimBlocksController):
 
     def __init__(self, root, actuator, mo, tip_index=121, name="FingerController"):
         super().__init__(name=name)
-        self.parameters_yaml = "project/parameters.yaml"
-        self.model_yaml = "project/model.yaml"
+        self.parameters_yaml = str((BASE_DIR / "../parameters.yaml").resolve())
+        self.model_yaml = str((BASE_DIR / "../model.yaml").resolve())
 
         self.mo = mo
         self.actuator = actuator
@@ -21,9 +27,6 @@ class FingerController(SofaPysimBlocksController):
         self.inputs = { "cable": None }
         self.outputs = { "tip": None, "measure": None }
 
-    def prepare_scene(self):
-        if self.step_index == 10:
-            self.IS_READY = True
 
     def get_outputs(self):
         tip = self.mo.position[self.tip_index].copy()

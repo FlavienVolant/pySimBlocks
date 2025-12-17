@@ -13,4 +13,5 @@ model = Model(
 sim = Simulator(model, sim_cfg)
 
 logs = sim.run()
-plot_from_config(logs, plot_cfg)
+if True:
+    plot_from_config(logs, plot_cfg)
