@@ -17,8 +17,8 @@ blocks:
 
   pid:
     controller: PI
-    Kp: "@Kp"
-    Ki: "@Ki"
+    Kp: "#Kp"
+    Ki: "#Ki"
 
   plant:
     A: [[0.95]]

@@ -2,7 +2,8 @@ import importlib.util
 from pathlib import Path
 from typing import Dict, Any, Tuple
 import yaml
-from fractions import Fraction
+import numpy as np
+import re
 from pySimBlocks.core.config import ModelConfig, SimulationConfig
 
 # ---------------------------------------------------------------------
@@ -21,7 +22,28 @@ def _load_yaml(path: Path) -> Dict[str, Any]:
 
     return data
 
+def convert_to_str(raw: dict) -> dict:
+    def _convert(v):
+        if v is None:
+            return None
+        return str(v)
 
+    if "simulation" in raw:
+        raw["simulation"] = {k: _convert(v) for k, v in raw["simulation"].items()}
+
+    if "blocks" in raw:
+        raw["blocks"] = {
+            b: {k: _convert(v) for k, v in params.items()}
+            for b, params in raw["blocks"].items()
+        }
+
+    return raw
+
+
+
+############################################################
+# External variables
+############################################################
 def _load_external_module(path: Path):
     if not path.exists():
         raise FileNotFoundError(f"External parameters module not found: {path}")
@@ -32,21 +54,31 @@ def _load_external_module(path: Path):
     assert spec.loader is not None
     spec.loader.exec_module(module)
 
-    return module
+    return module, module.__dict__
+
+
+_EXTERNAL_REF_PATTERN = re.compile(r"#([A-Za-z_][A-Za-z0-9_]*)")
+def extract_external_refs(expr: str) -> set[str]:
+    """
+    Extract all external references (#var) from an expression string.
+    """
+    return set(_EXTERNAL_REF_PATTERN.findall(expr))
 
 
 def _resolve_external_refs(obj: Any, external_module) -> Any:
     """
-    Recursively resolve @xxx references using the external module.
+    Recursively validate #var references using the external module.
+    Does NOT replace anything.
     """
-    if isinstance(obj, str) and obj.startswith("@"):
-        name = obj[1:]
-        if not hasattr(external_module, name):
-            raise KeyError(
-                f"External parameter '{name}' not found "
-                f"in module '{external_module.__file__}'"
-            )
-        return getattr(external_module, name)
+    if isinstance(obj, str):
+        refs = extract_external_refs(obj)
+        for name in refs:
+            if not hasattr(external_module, name):
+                raise KeyError(
+                    f"External parameter '{name}' not found "
+                    f"in module '{external_module.__file__}'"
+                )
+        return obj
 
     if isinstance(obj, list):
         return [_resolve_external_refs(v, external_module) for v in obj]
@@ -59,81 +91,58 @@ def _resolve_external_refs(obj: Any, external_module) -> Any:
 
     return obj
 
-
 def _check_no_external_refs(obj):
-    if isinstance(obj, str) and obj.startswith("@"):
-        raise ValueError(
-            "Found external reference '@...' but no 'external' module is defined"
-        )
-    if isinstance(obj, list):
+    if isinstance(obj, str):
+        refs = extract_external_refs(obj)
+        if refs:
+            raise ValueError(
+                f"Found external references {sorted(refs)} "
+                "but no 'external' module is defined"
+            )
+
+    elif isinstance(obj, list):
         for v in obj:
             _check_no_external_refs(v)
-    if isinstance(obj, dict):
+
+    elif isinstance(obj, dict):
         for v in obj.values():
             _check_no_external_refs(v)
 
 
-def parse_numeric(value):
+
+############################################################
+# EVAL
+############################################################
+def eval_value(value: Any, scope: dict):
     """
-    Parse numeric values from YAML.
-    Supports:
-      - int
-      - float
-      - fractions as strings: "a/b"
-    Preserves integers when possible.
+    Try to evaluate ANY value as a Python expression.
+
+    Rules:
+    - value is first converted to string
+    - '#' is stripped (used as internal keyword)
+    - lists are wrapped into np.array
+    - eval is attempted with a restricted namespace
+    - if eval fails → return original value
     """
-    # Already numeric → keep type
-    if isinstance(value, int):
+
+    try:
+        expr = str(value)
+        expr = expr.replace("#", "")
+        expr = re.sub(r'(?<!np\.array)\[', 'np.array([', expr)
+        expr = re.sub(r'\]', '])', expr)
+        return eval(expr, {"np": np}, scope)
+    except Exception:
         return value
 
-    if isinstance(value, float):
-        return value
 
-    if isinstance(value, str):
-        value = value.strip()
-
-        # Fraction
-        if "/" in value:
-            try:
-                return float(Fraction(value))
-            except Exception:
-                raise ValueError(f"Invalid fraction expression: '{value}'")
-
-        # Integer string
-        if value.isdigit() or (value.startswith("-") and value[1:].isdigit()):
-            return int(value)
-
-        # Float string
-        try:
-            return float(value)
-        except ValueError:
-            raise ValueError(f"Invalid numeric value: '{value}'")
-
-    raise TypeError(f"Unsupported numeric type: {type(value)}")
-
-
-
-def parse_numeric_recursive(obj):
-    """
-    Recursively parse numeric values.
-    Only parses values that are numeric-like.
-    Leaves strings untouched unless they are valid numeric expressions.
-    """
+def eval_recursive(obj: Any, scope: dict):
     if isinstance(obj, dict):
-        return {k: parse_numeric_recursive(v) for k, v in obj.items()}
+        return {k: eval_recursive(v, scope) for k, v in obj.items()}
 
     if isinstance(obj, list):
-        return [parse_numeric_recursive(v) for v in obj]
+        return [eval_recursive(v, scope) for v in obj]
 
-    # Only parse numeric-like strings
-    if isinstance(obj, str):
-        try:
-            return parse_numeric(obj)
-        except (ValueError, TypeError):
-            return obj  # keep string as-is
-
-    return obj
-
+    return eval_value(obj, scope)
 
 # ---------------------------------------------------------------------
 # Public API
@@ -157,11 +166,13 @@ def load_simulation_config(
     """
     parameters_yaml = Path(parameters_yaml)
     raw = _load_yaml(parameters_yaml)
+    raw = convert_to_str(raw)
 
     # ------------------------------------------------------------
     # External module handling
     # ------------------------------------------------------------
     external_module = None
+    scope = {}
 
     if "external" in raw:
         external = raw["external"]
@@ -169,7 +180,7 @@ def load_simulation_config(
             raise ValueError("'external' must be a path to a Python file")
 
         external_path = parameters_yaml.parent / external
-        external_module = _load_external_module(external_path)
+        external_module, scope = _load_external_module(external_path)
     else:
         _check_no_external_refs(raw)
 
@@ -196,7 +207,7 @@ def load_simulation_config(
             f"Missing required simulation parameters: {sorted(missing)}"
         )
 
-    sim_data = parse_numeric_recursive(sim_data)
+    sim_data = eval_recursive(sim_data, scope)
 
     sim_cfg = SimulationConfig(
         dt=sim_data["dt"],
@@ -212,7 +223,7 @@ def load_simulation_config(
     # ModelConfig
     # ------------------------------------------------------------
     blocks_data = resolved.get("blocks", {})
-    blocks_data = parse_numeric_recursive(blocks_data)
+    blocks_data = eval_recursive(blocks_data, scope)
     if not isinstance(blocks_data, dict):
         raise ValueError("'blocks' section must be a mapping")
 

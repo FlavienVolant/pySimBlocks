@@ -8,8 +8,6 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 
 
-
-
 class FingerController(SofaPysimBlocksController):
 
     def __init__(self, root, actuator, mo, tip_index=121, name="FingerController"):

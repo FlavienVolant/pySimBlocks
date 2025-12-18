@@ -10,7 +10,7 @@ model = Model(
     model_cfg=model_cfg
 )
 
-sim = Simulator(model, sim_cfg, verbose=True)
+sim = Simulator(model, sim_cfg)
 
 logs = sim.run()
 if True:
