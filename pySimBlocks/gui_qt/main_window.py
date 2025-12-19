@@ -45,23 +45,8 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(self.blocks)
         layout.addWidget(self.diagram)
-
-
-        self.simulation_config = {
-            "dt": 0.01,
-            "solver": "fixed",
-            "external_file": "",
-        }
-
         self.addToolBar(self.toolbar)
-
-
-
         self.setCentralWidget(central)
-
-
-
-
 
     ####################### Registry ########################
     def get_categories(self):

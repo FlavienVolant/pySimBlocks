@@ -125,8 +125,8 @@ def build_parameters_yaml(project: ProjectState) -> dict:
     data = {
         "simulation": project.simulation,
         "blocks": {},
-        "logging": [],
-        "plots": [],
+        "logging": project.logging,
+        "plots": project.plots,
     }
 
     for b in project.blocks:

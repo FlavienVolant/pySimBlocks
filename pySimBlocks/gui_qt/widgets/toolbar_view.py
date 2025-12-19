@@ -3,12 +3,12 @@ import shutil
 from PySide6.QtWidgets import QToolBar, QMessageBox
 from PySide6.QtGui import QAction
 
-from pySimBlocks.gui_qt.dialogs.display_yaml_dialogs import DisplayYamlDialog
+from pySimBlocks.gui_qt.dialogs.display_yaml_dialog import DisplayYamlDialog
+from pySimBlocks.gui_qt.dialogs.plot_dialog import PlotDialog
 from pySimBlocks.gui_qt.model.project_state import ProjectState
 from pySimBlocks.gui_qt.dialogs.settings import SettingsDialog
 from pySimBlocks.gui_qt.yaml_tools import save_yaml
 from pySimBlocks.project.generate_run_script import generate_python_content
-
 
 
 class ToolBarView(QToolBar):
@@ -97,7 +97,12 @@ class ToolBarView(QToolBar):
             self.project_state.logs = logs
 
         except Exception as e:
-            return False
+            QMessageBox.warning(
+                self,
+                "Simulation failed with error",
+                f"{e}",
+                QMessageBox.Ok,
+            )
 
         finally:
             os.chdir(old_cwd)
@@ -122,3 +127,6 @@ class ToolBarView(QToolBar):
                 QMessageBox.Ok,
             )
             return
+
+        dialog = PlotDialog(self.project_state)
+        dialog.exec()

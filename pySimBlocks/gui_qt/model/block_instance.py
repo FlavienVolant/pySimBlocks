@@ -40,7 +40,7 @@ class BlockInstance:
 
     def _resolve_port_group(self, pmeta, direction):
         if not pmeta["dynamic"]:
-            return [PortInstance(pmeta["name"], direction, self, pmeta)]
+            return [PortInstance(pmeta["pattern"], direction, self, pmeta)]
 
         source = pmeta["source"]
         pattern = pmeta["pattern"]

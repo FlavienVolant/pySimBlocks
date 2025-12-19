@@ -10,6 +10,7 @@ class ProjectState:
         self.simulation = {"dt": 0.1, "solver": "fixed", "T": 10.}
         self.external: str | None = None
         self.directory_path = directory_path
+        self.logging: list = []
         self.logs: dict = {}
         self.plots: list = []
 
@@ -54,3 +55,16 @@ class ProjectState:
             if b.name == name:
                 return False
         return True
+
+     # -------------------------
+     # Signals
+     # -------------------------
+    def get_output_signals(self) -> list[str]:
+        signals = []
+
+        for block in self.blocks:
+            for port in block.resolve_ports():
+                if port.direction == "output":
+                    signals.append(f"{block.name}.outputs.{port.name}")
+
+        return signals

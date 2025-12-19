@@ -14,6 +14,7 @@ parameters:
   controller:
     type: enum
     required: true
+    autofill: true
     default: PID
     enum: [P, I, PI, PD, PID]
 
