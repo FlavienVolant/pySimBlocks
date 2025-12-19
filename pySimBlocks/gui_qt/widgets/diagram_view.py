@@ -50,9 +50,9 @@ class DiagramView(QGraphicsView):
         if self.pending_port and self.pending_port.is_compatible(port):
             conn_inst = ConnectionInstance(
                 src_block=self.pending_port.parent_block.instance,
-                src_port=self.pending_port.name,
+                src_port=self.pending_port.instance.name,
                 dst_block=port.parent_block.instance,
-                dst_port=port.name,
+                dst_port=port.instance.name,
             )
             self.project_state.add_connection(conn_inst)
             conn = ConnectionItem(self.pending_port, port, conn_inst)

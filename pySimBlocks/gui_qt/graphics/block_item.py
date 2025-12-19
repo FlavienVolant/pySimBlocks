@@ -23,8 +23,12 @@ class BlockItem(QGraphicsRectItem):
         self.setFlag(QGraphicsRectItem.ItemSendsScenePositionChanges)
 
         # Ports
-        self.in_port = PortItem("in", "input", self, 0, self.HEIGHT / 2)
-        self.out_port = PortItem("out", "output", self, self.WIDTH, self.HEIGHT / 2)
+        self.port_items = []
+        for port in self.instance.resolve_ports():
+            item = PortItem(port, self)
+            self.port_items.append(item)
+        self._layout_ports()
+
 
     def paint(self, painter, option, widget=None):
         super().paint(painter, option, widget)
@@ -38,13 +42,40 @@ class BlockItem(QGraphicsRectItem):
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionHasChanged:
-            for port in [self.in_port, self.out_port]:
+            for port in self.port_items:
                 for c in port.connections:
                     c.update_position()
         return super().itemChange(change, value)
 
-
     def remove_all_connections(self):
-        for port in [self.in_port, self.out_port]:
+        for port in self.port_items:
             for conn in port.connections[:]:
                 conn.remove()
+
+    def refresh_ports(self):
+        for item in self.port_items:
+            self.scene().removeItem(item)
+
+        self.port_items.clear()
+
+        for port in self.instance.resolve_ports():
+            self.port_items.append(PortItem(port, self))
+
+        self._layout_ports()
+
+    def _layout_ports(self):
+        inputs = [p for p in self.port_items if p.instance.direction == "input"]
+        outputs = [p for p in self.port_items if p.instance.direction == "output"]
+
+        self._layout_side(inputs, x=0)
+        self._layout_side(outputs, x=self.WIDTH)
+
+    def _layout_side(self, ports, x):
+        if not ports:
+            return
+
+        step = self.HEIGHT / (len(ports) + 1)
+
+        for i, port in enumerate(ports, start=1):
+            port.setPos(x, i * step)
+            port.update_label_position()

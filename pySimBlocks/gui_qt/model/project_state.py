@@ -7,6 +7,8 @@ class ProjectState:
     def __init__(self):
         self.blocks: list[BlockInstance] = []
         self.connections: list[ConnectionInstance] = []
+        self.simulation = {"dt": 0.1, "solver": "fixed", "T": 10.}
+        self.external: str | None = None
 
     # -------------------------
     # Block management

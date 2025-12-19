@@ -1,3 +1,4 @@
+import ast
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QDialog,
@@ -37,7 +38,6 @@ class BlockDialog(QDialog):
         # --- Buttons row ---
         buttons_layout = QHBoxLayout()
         buttons_layout.addStretch()
-
 
         ok_btn = QPushButton("Ok")
         ok_btn.setDefault(True)
@@ -136,23 +136,30 @@ class BlockDialog(QDialog):
 
     # ------------------------------------------------------------
     # Buttons
-    def ok(self):
-        self.apply()
-        self.reject()
-
-
     def apply(self):
         self.block.instance.name = self.name_edit.text()
 
         for pname, widget in self.param_widgets.items():
             if isinstance(widget, QComboBox):
                 self.block.instance.parameters[pname] = widget.currentText()
+
             elif isinstance(widget, QLineEdit):
                 text = widget.text().strip()
-                self.block.instance.parameters[pname] = text if text else None
+                if not text:
+                    self.block.instance.parameters[pname] = None
+                    continue
+                try:
+                    value = ast.literal_eval(text)
+                except Exception:
+                    value = text   # fallback (string simple)
+                self.block.instance.parameters[pname] = value
 
+        self.block.refresh_ports()
         self.accept()
 
+    def ok(self):
+        self.apply()
+        self.reject()
 
     def open_help(self):
         help_path = self.block.instance.meta.doc_path
