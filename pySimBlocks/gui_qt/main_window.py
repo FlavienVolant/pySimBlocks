@@ -1,5 +1,3 @@
-import os
-import sys
 from pathlib import Path
 from PySide6.QtWidgets import (
     QMainWindow,
@@ -17,19 +15,12 @@ from pySimBlocks.gui_qt.model.project_state import ProjectState
 
 registry = load_block_registry()
 categories = sorted(registry.keys())
-# --------------------------------------------------
-# Project directory from CLI
-# --------------------------------------------------
-if len(sys.argv) > 1:
-    project_dir = os.path.abspath(sys.argv[1])
-else:
-    project_dir = os.getcwd()
-project_path = Path(project_dir).resolve()
+
 
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, project_path: Path):
         super().__init__()
         self.setWindowTitle("pySimBlocks — Qt prototype")
 

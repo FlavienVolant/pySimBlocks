@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QFont
 
 from pySimBlocks.gui_qt.model.project_state import ProjectState
-from pySimBlocks.gui_qt.yaml_tools import dump_parameter_yaml, dump_model_yaml
+from pySimBlocks.gui_qt.services.yaml_tools import dump_parameter_yaml, dump_model_yaml
 
 
 class DisplayYamlDialog(QDialog):

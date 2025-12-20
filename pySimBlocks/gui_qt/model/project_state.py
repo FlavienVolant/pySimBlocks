@@ -21,9 +21,14 @@ class ProjectState:
         instance.name = self.make_unique_name(instance.name)
         self.blocks.append(instance)
 
-    def remove_block(self, instance):
-        if instance in self.blocks:
-            self.blocks.remove(instance)
+    def remove_block(self, block: BlockInstance):
+        if block in self.blocks:
+            # supprimer connexions associées
+            self.connections = [
+                c for c in self.connections
+                if c.src_block is not block and c.dst_block is not block
+            ]
+            self.blocks.remove(block)
 
 
     def add_connection(self, conn: ConnectionInstance):

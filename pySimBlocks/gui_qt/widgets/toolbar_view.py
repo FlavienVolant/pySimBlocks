@@ -5,10 +5,9 @@ from PySide6.QtGui import QAction
 
 from pySimBlocks.gui_qt.dialogs.display_yaml_dialog import DisplayYamlDialog
 from pySimBlocks.gui_qt.dialogs.plot_dialog import PlotDialog
+from pySimBlocks.gui_qt.dialogs.settings_dialog import SettingsDialog
 from pySimBlocks.gui_qt.model.project_state import ProjectState
-from pySimBlocks.gui_qt.dialogs.settings import SettingsDialog
-from pySimBlocks.gui_qt.yaml_tools import save_yaml
-from pySimBlocks.project.generate_run_script import generate_python_content
+from pySimBlocks.gui_qt.services.project_controller import ProjectController
 
 
 class ToolBarView(QToolBar):
@@ -17,6 +16,7 @@ class ToolBarView(QToolBar):
         super().__init__()
 
         self.project_state = project
+        self.controller = ProjectController(project)
 
         save_action = QAction("Save", self)
         save_action.triggered.connect(self.save_yaml)
@@ -43,17 +43,10 @@ class ToolBarView(QToolBar):
         self.addAction(plot_action)
 
     def save_yaml(self):
-        save_yaml(self.project_state)
+        self.controller.save()
 
     def export_project(self):
-        save_yaml(self.project_state)
-        run_py = self.project_state.directory_path / "run.py"
-        run_py.write_text(
-            generate_python_content(
-                model_yaml_path="model.yaml",
-                parameters_yaml_path="parameters.yaml"
-            )
-        )
+        self.controller.export()
 
     def open_display_yaml(self):
         dialog = DisplayYamlDialog(self.project_state)
@@ -64,36 +57,8 @@ class ToolBarView(QToolBar):
         dialog.exec()
 
     def run_sim(self):
-        project_dir = self.project_state.directory_path
-        if project_dir is None:
-            return
-
-        temp_dir = project_dir / ".temp"
-
-        if temp_dir.exists():
-            shutil.rmtree(temp_dir)
-        temp_dir.mkdir(parents=True)
-        save_yaml(self.project_state, True)
-
-        model_path = temp_dir / "model.yaml"
-        param_path = temp_dir / "parameters.yaml"
-
-        code = generate_python_content(
-            model_yaml_path=str(model_path),
-            parameters_yaml_path=str(param_path),
-            enable_plots=False
-        )
-
-        old_cwd = os.getcwd()
         try:
-            env = {}
-            os.chdir(temp_dir)
-
-            exec(code, env, env)
-
-            logs = env.get("logs")
-            if logs is None:
-                raise RuntimeError("Simulation did not produce logs")
+            logs = self.controller.run()
             self.project_state.logs = logs
 
         except Exception as e:
@@ -104,29 +69,16 @@ class ToolBarView(QToolBar):
                 QMessageBox.Ok,
             )
 
-        finally:
-            os.chdir(old_cwd)
-
 
     def plot_logs(self):
-        logs_keys = self.project_state.logs.keys()
-        plots = self.project_state.plots
-        if len(logs_keys) == 0:
+        flag, msg = self.controller.can_plot()
+        if not flag:
             QMessageBox.warning(
                 self,
-                "No simulation",
-                f"The simulation has not been done yet.\nPlease click on Run.",
+                "Plot Error",
+                msg,
                 QMessageBox.Ok,
             )
             return
-        elif len(plots) == 0:
-            QMessageBox.warning(
-                self,
-                "No plots asked",
-                f"Simulation has been done but no plots set.\nPlease create plots on settings.",
-                QMessageBox.Ok,
-            )
-            return
-
         dialog = PlotDialog(self.project_state)
         dialog.exec()
