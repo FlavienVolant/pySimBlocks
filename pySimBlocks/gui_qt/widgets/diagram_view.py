@@ -46,19 +46,37 @@ class DiagramView(QGraphicsView):
     def start_connection(self, port):
         self.pending_port = port
 
+
     def finish_connection(self, port):
-        if self.pending_port and self.pending_port.is_compatible(port):
-            conn_inst = ConnectionInstance(
-                src_block=self.pending_port.parent_block.instance,
-                src_port=self.pending_port.instance.name,
-                dst_block=port.parent_block.instance,
-                dst_port=port.instance.name,
-            )
-            self.project_state.add_connection(conn_inst)
-            conn = ConnectionItem(self.pending_port, port, conn_inst)
-            self.scene.addItem(conn)
-            self.pending_port.add_connection(conn)
-            port.add_connection(conn)
+        if self.pending_port is None:
+            return
+
+        p1, p2 = self.pending_port, port
+        if not p1.is_compatible(p2):
+            self.pending_port = None
+            return
+
+        # Determine source / destination by port type
+        if p1.instance.direction == "output" and p2.instance.direction == "input":
+            src_port, dst_port = p1, p2
+        elif p1.instance.direction == "input" and p2.instance.direction == "output":
+            src_port, dst_port = p2, p1
+        else:
+            self.pending_port = None
+            return
+
+        # Create model connection
+        conn_inst = ConnectionInstance(
+            src_block=src_port.parent_block.instance,
+            src_port=src_port.instance.name,
+            dst_block=dst_port.parent_block.instance,
+            dst_port=dst_port.instance.name,
+        )
+        self.project_state.add_connection(conn_inst)
+        conn_item = ConnectionItem(src_port, dst_port, conn_inst)
+        self.scene.addItem(conn_item)
+        src_port.add_connection(conn_item)
+        dst_port.add_connection(conn_item)
         self.pending_port = None
 
 

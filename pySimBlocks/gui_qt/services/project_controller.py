@@ -25,7 +25,7 @@ class ProjectController:
     def run(self):
         project_dir = self.project_state.directory_path
         if project_dir is None:
-            return {}
+            return {}, False, "Project directory is not set.\nPlease define it in settings."
 
         temp_dir = project_dir / ".temp"
 
@@ -49,12 +49,12 @@ class ProjectController:
             os.chdir(temp_dir)
             exec(code, env, env)
             logs = env.get("logs")
-        except:
+            return logs, True, "Simulation success."
+        except Exception as e:
             logs = {}
+            return logs, False, f"Error: {e}"
         finally:
             os.chdir(old_cwd)
-
-        return logs
 
     def can_plot(self):
         if not bool(self.project_state.logs):

@@ -57,15 +57,13 @@ class ToolBarView(QToolBar):
         dialog.exec()
 
     def run_sim(self):
-        try:
-            logs = self.controller.run()
-            self.project_state.logs = logs
-
-        except Exception as e:
+        logs, flag, msg = self.controller.run()
+        self.project_state.logs = logs
+        if not flag:
             QMessageBox.warning(
                 self,
                 "Simulation failed with error",
-                f"{e}",
+                msg,
                 QMessageBox.Ok,
             )
 
