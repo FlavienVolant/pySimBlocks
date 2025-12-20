@@ -22,7 +22,7 @@ def main():
     window = MainWindow(project_path)
 
     def cleanup():
-        temp_path = project_path / ".temp"
+        temp_path = window.project.directory_path / ".temp"
         if temp_path.exists():
             shutil.rmtree(temp_path, ignore_errors=True)
 

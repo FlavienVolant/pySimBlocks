@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 import shutil
 from PySide6.QtCore import QPointF
@@ -12,10 +13,10 @@ from pySimBlocks.project.generate_run_script import generate_python_content
 
 
 class ProjectController:
-    def __init__(self, project_state: ProjectState, view: DiagramView, resolve_block_meta):
+    def __init__(self, project_state: ProjectState, resolve_block_meta):
         self.project_state = project_state
-        self.view = view
         self.resolve_block_meta = resolve_block_meta
+        self.view: DiagramView | None = None
 
     def save(self):
         save_yaml(self.project_state)
@@ -52,9 +53,11 @@ class ProjectController:
         )
 
         old_cwd = os.getcwd()
+        old_sys_path = list(sys.path)
         env = {}
         try:
             os.chdir(temp_dir)
+            sys.path.insert(0, str(project_dir))
             exec(code, env, env)
             logs = env.get("logs")
             return logs, True, "Simulation success."
@@ -63,6 +66,7 @@ class ProjectController:
             return logs, False, f"Error: {e}"
         finally:
             os.chdir(old_cwd)
+            sys.path[:] = old_sys_path
 
     def can_plot(self):
         if not bool(self.project_state.logs):
@@ -72,6 +76,14 @@ class ProjectController:
             return False, "Time is not in logs."
 
         return True, "Plotting is available."
+
+
+    def change_project_directory(self, new_path: Path):
+        if self.project_state.directory_path:
+            temp = self.project_state.directory_path / ".temp"
+            if temp.exists():
+                shutil.rmtree(temp, ignore_errors=True)
+        self.project_state.directory_path = new_path
 
 
     def load_project(self, directory: Path):
@@ -107,8 +119,8 @@ class ProjectController:
         if "T" not in sim_data:
             sim_data["T"] = self.project_state.simulation["T"]
         self.project_state.simulation = sim_data
-        if "external" in sim_data:
-            self.project_state.external = sim_data["external"]
+        if "external" in params_data:
+            self.project_state.external = params_data["external"]
 
 
     def _load_blocks(self, model_data, params_data):

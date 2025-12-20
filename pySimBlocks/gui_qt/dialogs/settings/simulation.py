@@ -29,16 +29,7 @@ class SimulationSettingsWidget(QWidget):
         # -------- Logs --------
         self.logs_list = QListWidget()
         self.logs_list.itemChanged.connect(self._on_log_changed)
-
-        available = project.get_output_signals()
-        selected = set(project.logging)
-
-        for sig in available:
-            item = QListWidgetItem(sig)
-            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-            item.setCheckState(Qt.Checked if sig in selected else Qt.Unchecked)
-            self.logs_list.addItem(item)
-
+        self._define_log_list()
         layout.addRow("Signals logged:", self.logs_list)
 
     def apply(self):
@@ -65,9 +56,8 @@ class SimulationSettingsWidget(QWidget):
         Synchronize the log checkbox list with project_state.logging.
         Called when the Simulation tab becomes active.
         """
+        self._define_log_list()
         selected = set(self.project.logging)
-
-        # Block signals to avoid recursive itemChanged triggers
         self.logs_list.blockSignals(True)
 
         for i in range(self.logs_list.count()):
@@ -79,6 +69,17 @@ class SimulationSettingsWidget(QWidget):
 
         self.logs_list.blockSignals(False)
 
+    def _define_log_list(self):
+        self.logs_list.blockSignals(True)
+        self.logs_list.clear()
+        available = self.project.get_output_signals()
+        selected = set(self.project.logging)
+        for sig in available:
+            item = QListWidgetItem(sig)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setCheckState(Qt.Checked if sig in selected else Qt.Unchecked)
+            self.logs_list.addItem(item)
+        self.logs_list.blockSignals(False)
 
     def _on_log_changed(self, item: QListWidgetItem):
         if item.checkState() == Qt.Unchecked:

@@ -6,10 +6,11 @@ from pySimBlocks.gui_qt.dialogs.settings.project import ProjectSettingsWidget
 from pySimBlocks.gui_qt.dialogs.settings.simulation import SimulationSettingsWidget
 from pySimBlocks.gui_qt.dialogs.settings.plots import PlotSettingsWidget
 from pySimBlocks.gui_qt.model.project_state import ProjectState
+from pySimBlocks.gui_qt.services.project_controller import ProjectController
 
 
 class SettingsDialog(QDialog):
-    def __init__(self, project: ProjectState, parent=None):
+    def __init__(self, project: ProjectState, project_controller: ProjectController,  parent=None):
         super().__init__(parent)
         self.setWindowTitle("Settings")
         self.setMinimumWidth(500)
@@ -20,7 +21,7 @@ class SettingsDialog(QDialog):
 
         # ---------------- Tabs ----------------
         self.tabs = QTabWidget()
-        self.project_tab = ProjectSettingsWidget(project)
+        self.project_tab = ProjectSettingsWidget(project, project_controller, self)
         self.simulation_tab = SimulationSettingsWidget(project)
         self.plots_tab = PlotSettingsWidget(project)
 
@@ -38,7 +39,7 @@ class SettingsDialog(QDialog):
 
         ok_btn = QPushButton("Ok")
         ok_btn.setDefault(True)
-        ok_btn.clicked.connect(self.accept)
+        ok_btn.clicked.connect(self.ok)
 
         apply_btn = QPushButton("Apply")
         apply_btn.clicked.connect(self.apply)
@@ -48,11 +49,18 @@ class SettingsDialog(QDialog):
 
         layout.addLayout(buttons)
 
+    def ok(self):
+        self.apply()
+        self.accept()
+
     def apply(self):
         if not self.project_tab.apply():
             return
         self.simulation_tab.apply()
 
+    def refresh_tabs_from_project(self):
+        self.simulation_tab.refresh_from_project()
+        self.plots_tab.refresh_from_project()
 
     def _on_tab_changed(self, index):
         widget = self.tabs.widget(index)

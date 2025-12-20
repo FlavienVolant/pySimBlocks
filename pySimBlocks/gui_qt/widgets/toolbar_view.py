@@ -53,7 +53,7 @@ class ToolBarView(QToolBar):
         dialog.exec()
 
     def open_simulation_settings(self):
-        dialog = SettingsDialog(self.project_state)
+        dialog = SettingsDialog(self.project_state, self.project_controller)
         dialog.exec()
 
     def run_sim(self):

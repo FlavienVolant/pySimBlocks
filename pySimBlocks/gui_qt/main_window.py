@@ -24,12 +24,14 @@ class MainWindow(QMainWindow):
         central = QWidget()
         layout = QHBoxLayout(central)
         self.project = ProjectState(project_path)
+        self.project_controller = ProjectController(self.project, self.resolve_block_meta)
 
         self.blocks = BlockList(self.get_categories, self.get_blocks)
         self.diagram = DiagramView(self.resolve_block_meta, self.project)
-        self.project_controller = ProjectController(self.project, self.diagram, self.resolve_block_meta)
         self.toolbar = ToolBarView(self.project, self.project_controller)
         self.blocks.setFixedWidth(220)
+
+        self.project_controller.view = self.diagram
 
         layout.addWidget(self.blocks)
         layout.addWidget(self.diagram)

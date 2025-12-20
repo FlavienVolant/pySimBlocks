@@ -1,5 +1,5 @@
 from pathlib import Path
-import copy
+import os
 import yaml
 from pySimBlocks.gui_qt.model.project_state import ProjectState
 
@@ -105,14 +105,13 @@ def save_yaml(project: ProjectState, temp=False):
     params_yaml = build_parameters_yaml(project)
     model_yaml = build_model_yaml(project)
 
-    if temp and "external" in params_yaml:
-        params_yaml = copy.deepcopy(params_yaml)
-        external_path = Path(params_yaml["external"]).resolve()
-        relative_external = external_path.relative_to(directory)
-        params_yaml["external"] = relative_external
-
     if temp:
-        directory = directory / ".temp"
+        temp_dir = directory / ".temp"
+        if "external" in params_yaml:
+            external_abs = directory / params_yaml["external"]
+            external_temp = os.path.relpath(external_abs, temp_dir)
+            params_yaml["external"] = external_temp
+        directory = temp_dir
 
     directory.mkdir(parents=True, exist_ok=True)
     (directory / "parameters.yaml").write_text(
@@ -140,7 +139,12 @@ def build_parameters_yaml(project: ProjectState) -> dict:
         }
         data["blocks"][b.name] = params
 
+    if project.external is not None:
+        data["external"] = project.external
+
     return data
+
+
 def build_model_yaml(project: ProjectState) -> dict:
     return {
         "blocks": [

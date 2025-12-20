@@ -63,6 +63,15 @@ class PlotSettingsWidget(QWidget):
     # ==================================================
     # Helpers
     # ==================================================
+    def refresh_from_project(self):
+        """Synchronize the plot editor with the current project state."""
+        self.edit_index = None
+        self.refresh_plot_list()
+        self.plot_list.clearSelection()
+        self.populate_signal_list()
+        self.title_edit.clear()
+        self.update_buttons_state()
+
     def refresh_plot_list(self):
         self.plot_list.clear()
         for plot in self.project.plots:
