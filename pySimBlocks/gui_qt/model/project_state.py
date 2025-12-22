@@ -106,9 +106,9 @@ class ProjectState:
                 return False
         return True
 
-     # -------------------------
-     # Signals
-     # -------------------------
+    # -------------------------
+    # Signals
+    # -------------------------
     def get_output_signals(self) -> list[str]:
         signals = []
 

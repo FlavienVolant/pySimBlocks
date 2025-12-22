@@ -1,5 +1,4 @@
 from pathlib import Path
-import shutil
 from PySide6.QtWidgets import (
     QWidget, QFormLayout, QLabel, QLineEdit, QMessageBox, QPushButton
 )

@@ -12,7 +12,7 @@ class BlockInstance:
     def __init__(self, meta):
         self.meta = meta
         self.name = meta.name
-        self.parameters = self._init_parameters()
+        self.parameters: dict = self._init_parameters()
         self.ports: list[PortInstance] = []
 
     def _init_parameters(self) -> dict:

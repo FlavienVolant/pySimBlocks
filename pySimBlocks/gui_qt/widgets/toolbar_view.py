@@ -1,13 +1,17 @@
-import os
-import shutil
-from PySide6.QtWidgets import QToolBar, QMessageBox
+from PySide6.QtWidgets import QToolBar, QMessageBox, QProgressDialog, QApplication, QLabel
 from PySide6.QtGui import QAction
+from PySide6.QtCore import Qt
 
+from pySimBlocks.gui_qt.addons.sofa.sofa_dialog import SofaDialog
 from pySimBlocks.gui_qt.dialogs.display_yaml_dialog import DisplayYamlDialog
 from pySimBlocks.gui_qt.dialogs.plot_dialog import PlotDialog
 from pySimBlocks.gui_qt.dialogs.settings_dialog import SettingsDialog
 from pySimBlocks.gui_qt.model.project_state import ProjectState
 from pySimBlocks.gui_qt.services.project_controller import ProjectController
+
+# Add ons
+from pySimBlocks.gui_qt.addons.sofa.sofa_dialog import SofaDialog
+from pySimBlocks.gui_qt.addons.sofa.sofa_service import SofaService
 
 
 class ToolBarView(QToolBar):
@@ -42,6 +46,12 @@ class ToolBarView(QToolBar):
         plot_action.triggered.connect(self.plot_logs)
         self.addAction(plot_action)
 
+        # add ons
+        self.sofa_service = SofaService(self.project_state, self.project_controller)
+        self.sofa_action = QAction("Sofa", self)
+        self.sofa_action.triggered.connect(self.open_sofa_dialog)
+        self.addAction(self.sofa_action)
+
     def save_yaml(self):
         self.project_controller.save()
 
@@ -57,8 +67,23 @@ class ToolBarView(QToolBar):
         dialog.exec()
 
     def run_sim(self):
+        dlg = QProgressDialog(self)
+        dlg.setWindowTitle("Simulation")
+        dlg.setLabelText("Running simulation...\nPlease wait.")
+        dlg.setRange(0, 0)  # busy indicator
+        dlg.setCancelButton(None)
+        dlg.setWindowModality(Qt.ApplicationModal)
+        dlg.setMinimumWidth(300)
+        dlg.setMinimumHeight(120)
+        dlg.show()
+        QApplication.processEvents()
+
+        self.set_running(True)
         logs, flag, msg = self.project_controller.run()
+        dlg.close()
+        self.set_running(False)
         self.project_state.logs = logs
+
         if not flag:
             QMessageBox.warning(
                 self,
@@ -79,4 +104,32 @@ class ToolBarView(QToolBar):
             )
             return
         dialog = PlotDialog(self.project_state)
+        dialog.exec()
+
+
+    def set_running(self, running: bool):
+        for action in self.actions():
+            action.setEnabled(not running)
+
+    #####################################
+    # Adds on
+    def refresh_sofa_button(self):
+        if self.project_state.has_sofa_block():
+            if self.sofa_action not in self.actions():
+                self.addAction(self.sofa_action)
+        else:
+            if self.sofa_action in self.actions():
+                self.removeAction(self.sofa_action)
+
+    def open_sofa_dialog(self):
+        ok, msg, details = self.sofa_service.can_use_sofa()
+        # if not ok:
+        #     QMessageBox.warning(
+        #         self,
+        #         msg,
+        #         details,
+        #         QMessageBox.Ok
+        #     )
+            # return
+        dialog = SofaDialog(self.sofa_service)
         dialog.exec()
