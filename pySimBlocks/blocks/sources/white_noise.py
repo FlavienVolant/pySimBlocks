@@ -38,8 +38,8 @@ class WhiteNoise(BlockSource):
         super().__init__(name, sample_time)
 
         # Normalize parameters
-        M = self._to_column_vector("mean", np.asarray(mean))
-        S = self._to_column_vector("std",  np.asarray(std))
+        M = self._to_column_vector("mean", mean)
+        S = self._to_column_vector("std", std)
 
         # Validate std ≥ 0
         if np.any(S < 0):

@@ -34,17 +34,12 @@ class Step(BlockSource):
     """
 
 
-    def __init__(self, name: str, value_before, value_after, start_time, sample_time:float|None = None):
+    def __init__(self, name: str, value_before=0., value_after=1., start_time=1., sample_time:float|None = None):
 
         super().__init__(name, sample_time)
-
-        # --- Validate and normalize values ---
-        vb = np.asarray(value_before)
-        va = np.asarray(value_after)
-
         # reshape using the same rules as Constant
-        vb = self._to_column_vector("value_before", vb)
-        va = self._to_column_vector("value_after", va)
+        vb = self._to_column_vector("value_before", value_before)
+        va = self._to_column_vector("value_after", value_after)
 
         if vb.shape != va.shape:
             raise ValueError(

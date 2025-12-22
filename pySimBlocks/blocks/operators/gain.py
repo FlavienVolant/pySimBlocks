@@ -4,32 +4,25 @@ from pySimBlocks.core.block import Block
 
 class Gain(Block):
     """
-    Discrete-time SISO PID controller.
+    Static linear gain block
 
     Summary:
-        Implements a parallel-form PID controller with optional saturation
-        and selectable integration method.
+        Computes y = K u
 
     Parameters (overview):
-        controller : {"P", "I", "PI", "PD", "PID"}
-            Control structure to enable.
-        Kp, Ki, Kd : scalar-like
-            Proportional, integral and derivative gains.
-        integration_method : str
-            Numerical integration scheme for the integral term.
-        u_min, u_max : scalar-like, optional
-            Output saturation limits.
+        gain: scalar or matrix
+            Gain coefficient
         sample_time : float, optional
             Block execution period.
 
     I/O:
         Input:
-            e : error signal (SISO)
+            in : input signal
         Output:
-            u : control command (SISO)
+            out : output signal.
 
     Notes:
-        - This block is strictly SISO.
+        - This block is diredt feedthrough.
         - Exact parameter constraints and defaults are defined in the block metadata.
     """
 

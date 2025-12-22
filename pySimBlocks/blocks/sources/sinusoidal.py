@@ -40,10 +40,10 @@ class Sinusoidal(BlockSource):
         super().__init__(name, sample_time)
 
         # Normalize parameters to column vectors
-        A = self._to_column_vector("amplitude", np.asarray(amplitude))
-        F = self._to_column_vector("frequency", np.asarray(frequency))
-        O = self._to_column_vector("offset",    np.asarray(offset))
-        P = self._to_column_vector("phase",     np.asarray(phase))
+        A = self._to_column_vector("amplitude", amplitude)
+        F = self._to_column_vector("frequency", frequency)
+        O = self._to_column_vector("offset", offset)
+        P = self._to_column_vector("phase", phase)
 
         # Determine final dimension n
         dims = {A.shape[0], F.shape[0], O.shape[0], P.shape[0]}
