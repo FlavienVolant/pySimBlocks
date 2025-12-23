@@ -2,8 +2,7 @@
 
 ## Summary
 
-The **LinearStateSpace** block implements a discrete-time linear state-space
-system without direct feedthrough.
+The **LinearStateSpace** block implements a discrete-time linear state-space system without direct feedthrough.
 
 ---
 

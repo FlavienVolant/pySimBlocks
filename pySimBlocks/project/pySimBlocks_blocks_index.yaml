@@ -10,6 +10,9 @@ observers:
     class: Luenberger
     module: pySimBlocks.blocks.observers.luenberger
 operators:
+  algebraic_function:
+    class: AlgebraicFunction
+    module: pySimBlocks.blocks.operators.algebraic_function
   dead_zone:
     class: DeadZone
     module: pySimBlocks.blocks.operators.dead_zone
@@ -60,6 +63,9 @@ systems:
   linear_state_space:
     class: LinearStateSpace
     module: pySimBlocks.blocks.systems.linear_state_space
+  non_linear_state_space:
+    class: NonLinearStateSpace
+    module: pySimBlocks.blocks.systems.non_linear_state_space
   sofa_controller:
     class: SofaPysimBlocksController
     module: pySimBlocks.blocks.systems.sofa.sofa_controller
