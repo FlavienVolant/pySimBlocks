@@ -2,7 +2,7 @@
 
 Simulink python project
 
-pySimBlocks is a lightweight and extensible environment for building, configuring, and executing block-diagram models—similar to Simulink—directly in Python, featuring a Streamlit-based graphical editor, a discrete-time simulation engine, and automatic project generation from YAML configurations.
+pySimBlocks is a lightweight and extensible environment for building, configuring, and executing block-diagram models—similar to Simulink—directly in Python, featuring a PySide6-based graphical editor, a discrete-time simulation engine, and automatic project generation from YAML configurations.
 
 ## Documentation
 

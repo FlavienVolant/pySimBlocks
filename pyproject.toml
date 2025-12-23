@@ -11,12 +11,12 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.10"
-# dependencies = [
-#     "numpy",
-#     "pyyaml",
-#     "PySide6",
-#     "matplotlib",
-# ]
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "pyyaml",
+    "PySide6",
+]
 
 [project.scripts]
 pysimblocks = "pySimBlocks.gui.editor:main"
