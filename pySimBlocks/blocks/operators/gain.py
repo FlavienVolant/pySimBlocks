@@ -78,7 +78,7 @@ class Gain(Block):
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is not connected or not set.")
 
-        u = np.asarray(u).reshape(-1, 1)
+        u = np.asarray(u, dtype=float).reshape(-1, 1)
         self.outputs["out"] = self._compute(u)
 
     # ------------------------------------------------------------------

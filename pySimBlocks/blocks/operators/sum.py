@@ -7,7 +7,7 @@ class Sum(Block):
     Multi-input summation block.
 
     Summary:
-        Computes a weighted sum of multiple input signals.
+        Computes a sum/substraction of multiple input signals.
 
     Parameters (overview):
         signs : str of signs +-

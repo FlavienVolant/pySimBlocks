@@ -1,0 +1,22 @@
+blocks:
+  - name: Camera
+    category: interfaces
+    type: external_input
+  - name: Motor
+    category: interfaces
+    type: external_output
+  - name: StateFeedback
+    category: controllers
+    type: state_feedback
+  - name: Luenberger
+    category: observers
+    type: luenberger
+  - name: Reference
+    category: interfaces
+    type: external_input
+connections:
+  - [StateFeedback.u, Luenberger.u]
+  - [StateFeedback.u, Motor.in]
+  - [Luenberger.x_hat, StateFeedback.x]
+  - [Camera.out, Luenberger.y]
+  - [Reference.out, StateFeedback.r]

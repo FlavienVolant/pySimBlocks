@@ -5,6 +5,13 @@ controllers:
   state_feedback:
     class: StateFeedback
     module: pySimBlocks.blocks.controllers.state_feedback
+interfaces:
+  external_input:
+    class: ExternalInput
+    module: pySimBlocks.blocks.interfaces.external_input
+  external_output:
+    class: ExternalOutput
+    module: pySimBlocks.blocks.interfaces.external_output
 observers:
   luenberger:
     class: Luenberger
@@ -31,6 +38,9 @@ operators:
   mux:
     class: Mux
     module: pySimBlocks.blocks.operators.mux
+  product:
+    class: Product
+    module: pySimBlocks.blocks.operators.product
   rate_limiter:
     class: RateLimiter
     module: pySimBlocks.blocks.operators.rate_limiter

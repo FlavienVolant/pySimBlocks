@@ -63,7 +63,11 @@ class BlockInstance:
         operation = meta["source"].get("operation", '')
 
         if operation == "len":
-            for i in range(1, len(value) +1):
+            for i in range(1, len(value) + 1):
+                ports.append(PortInstance(pattern.format(val=i), direction, self, meta))
+
+        elif operation == "len + 1":
+            for i in range(1, len(value) + 2):
                 ports.append(PortInstance(pattern.format(val=i), direction, self, meta))
 
         elif operation == "keys":

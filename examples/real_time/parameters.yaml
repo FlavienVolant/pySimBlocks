@@ -1,0 +1,24 @@
+simulation:
+  dt: 1/60
+  solver: fixed
+  T: 10.0
+blocks:
+  Camera: {}
+  Motor: {}
+  StateFeedback:
+    K: "#K"
+    G: "#G"
+  Luenberger:
+    A: "#A"
+    B: "#B"
+    C: "#C"
+    L: "#L"
+  Reference: {}
+logging:
+  - Camera.outputs.out
+  - Motor.outputs.out
+  - StateFeedback.outputs.u
+  - Luenberger.outputs.x_hat
+  - Luenberger.outputs.y_hat
+plots: []
+external: parameters.py

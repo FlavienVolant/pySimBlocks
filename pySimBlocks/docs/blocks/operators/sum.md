@@ -16,11 +16,9 @@ where each coefficient \( s_i \) is either +1 or −1.
 
 | Name | Description |
 |------|------------|
-| `num_inputs` | Number of input ports (default: 2). |
-| `signs` | List of +1 or −1 coefficients applied to each input. |
+| `signs` | List of + or − coefficients applied to each input. |
 | `sample_time` | Optional block sample time. |
 
-If `signs` is not provided, all inputs are summed with a +1 coefficient.
 
 ---
 
@@ -28,7 +26,7 @@ If `signs` is not provided, all inputs are summed with a +1 coefficient.
 
 | Port | Description |
 |------|------------|
-| `in1 … inN` | Input signals to be summed. All inputs must have identical dimensions. |
+| `in1 … inN` | Input signals to be summed. All inputs must have identical dimensions or scalar. |
 
 ---
 
@@ -43,5 +41,5 @@ If `signs` is not provided, all inputs are summed with a +1 coefficient.
 ## Notes
 
 - The Sum block has no internal state.
-- The number of input ports is determined by `num_inputs` or the length of `signs`.
+- The number of input ports is determined by the length of `signs`.
 - This block is equivalent to the Simulink **Sum** block.

@@ -63,6 +63,14 @@ class Model:
         self.blocks[block.name] = block
         return block
 
+    def get_block_by_name(self, name: str) -> Block:
+        """Get a block by its name."""
+        if name not in self.blocks:
+            raise ValueError(
+                f"Block name '{name}' not found. Known blocks: {list(self.blocks.keys())}"
+            )
+        return self.blocks[name]
+
 
     def connect(self, src_block: str, src_port: str,
                       dst_block: str, dst_port: str) -> None:
