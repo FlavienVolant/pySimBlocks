@@ -1,6 +1,6 @@
-from PySide6.QtWidgets import QGraphicsRectItem, QGraphicsItem
+from PySide6.QtWidgets import QGraphicsRectItem, QGraphicsItem, QStyle
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush, QColor
+from PySide6.QtGui import QBrush, QColor, QPen
 
 from pySimBlocks.gui.dialogs.block_dialog import BlockDialog
 from pySimBlocks.gui.graphics.port_item import PortItem
@@ -17,7 +17,6 @@ class BlockItem(QGraphicsRectItem):
         self.instance = instance
 
         self.setPos(pos)
-        self.setBrush(QBrush(QColor("#E6F2FF")))
         self.setFlag(QGraphicsRectItem.ItemIsMovable)
         self.setFlag(QGraphicsRectItem.ItemIsSelectable)
         self.setFlag(QGraphicsRectItem.ItemSendsScenePositionChanges)
@@ -32,11 +31,22 @@ class BlockItem(QGraphicsRectItem):
 
 
     def paint(self, painter, option, widget=None):
-        super().paint(painter, option, widget)
+        # --- background ---
+        if option.state & QStyle.State_Selected:
+            painter.setBrush(QColor("#88C0D0"))
+            painter.setPen(QPen(QColor("#2E3440"), 2))
+        else:
+            painter.setBrush(QColor("#E6F2FF"))
+            painter.setPen(QPen(QColor("#4C566A"), 1))
+
+        painter.drawRect(self.rect())
+
+        # --- text ---
+        painter.setPen(QColor("#2E3440"))
         painter.drawText(self.rect(), Qt.AlignCenter, self.instance.name)
 
     def mouseDoubleClickEvent(self, event):
-        dialog = BlockDialog(self)
+        dialog = BlockDialog(self, readonly=False)
         dialog.exec()
         self.update()
         event.accept()

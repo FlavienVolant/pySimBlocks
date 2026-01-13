@@ -26,7 +26,7 @@ class MainWindow(QMainWindow):
         self.project = ProjectState(project_path)
         self.project_controller = ProjectController(self.project, self.resolve_block_meta)
 
-        self.blocks = BlockList(self.get_categories, self.get_blocks)
+        self.blocks = BlockList(self.get_categories, self.get_blocks, self.resolve_block_meta)
         self.diagram = DiagramView(self.resolve_block_meta, self.project)
         self.toolbar = ToolBarView(self.project, self.project_controller)
         self.blocks.setFixedWidth(220)

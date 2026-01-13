@@ -19,10 +19,14 @@ from pySimBlocks.gui.dialogs.help_dialog import HelpDialog
 
 
 class BlockDialog(QDialog):
-    def __init__(self, block):
+    def __init__(self, block, readonly=False):
         super().__init__()
         self.block = block
-        self.setWindowTitle("Edit block")
+        self.readonly = readonly
+        if self.readonly:
+            self.setWindowTitle(f"[{self.block.instance.name}] Information")
+        else:
+            self.setWindowTitle(f"Edit [{self.block.instance.name}] Parameters")
         self.setMinimumWidth(300)
         self.param_widgets = {}
 
@@ -91,11 +95,25 @@ class BlockDialog(QDialog):
         # --- Block name ---
         self.name_edit = QLineEdit(self.block.instance.name)
         form.addRow(QLabel("Block name:"), self.name_edit)
+        if self.readonly:
+            self.name_edit.setReadOnly(True)
 
         for pname, pmeta in meta_params.items():
             widget = self._create_param_widget(pname, pmeta, inst_params)
             if widget is None:
                 continue
+            if self.readonly:
+                if isinstance(widget, QLineEdit):
+                    widget.setReadOnly(True)
+                    widget.setStyleSheet("""
+                        QLineEdit {
+                            background-color: #2b2b2b;
+                            color: #888888;
+                            border: 1px solid #444444;
+                        }
+                    """)
+                elif isinstance(widget, QComboBox):
+                    widget.setEnabled(False)
 
             label = QLabel(f"{pname}:")
             if "description" in pmeta:
@@ -137,6 +155,9 @@ class BlockDialog(QDialog):
     # ------------------------------------------------------------
     # Buttons
     def apply(self):
+        if self.readonly:
+            return
+
         self.block.instance.name = self.name_edit.text()
         for pname, widget in self.param_widgets.items():
             if isinstance(widget, QComboBox):
@@ -198,5 +219,7 @@ class BlockDialog(QDialog):
 
 
     def _on_param_changed(self, name, value):
+        if self.readonly:
+            return
         self.block.instance.parameters[name] = value
         self.update_visibility()
