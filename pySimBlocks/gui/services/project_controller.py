@@ -188,7 +188,7 @@ class ProjectController:
             pos = positions[block.name]
             item = BlockItem(block, pos, self.view)
             self.view.scene.addItem(item)
-            self.view.block_items[block.name] = item
+            self.view.block_items[item.instance.uid] = item
 
 
     def _instantiate_connections_in_view(self):

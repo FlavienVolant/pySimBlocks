@@ -1,3 +1,4 @@
+import uuid
 from pySimBlocks.gui.model.port_instance import PortInstance
 
 
@@ -11,6 +12,7 @@ class BlockInstance:
     """
 
     def __init__(self, meta):
+        self.uid = uuid.uuid4().hex
         self.meta = meta
         self.name = meta.name
         self.parameters: dict = self._init_parameters()

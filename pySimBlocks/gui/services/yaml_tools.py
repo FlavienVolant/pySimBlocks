@@ -111,7 +111,7 @@ def dump_layout_yaml(
         block_items: dict[str, BlockItem] | None = None, 
         raw: dict | None = None
         ) -> str:
-    if block_items:
+    if block_items is not None:
         data = build_layout_yaml(block_items)
     elif raw:
         data = raw
@@ -211,7 +211,8 @@ def build_layout_yaml(block_items: dict[str, BlockItem]) -> dict:
         "blocks": {}
     }
 
-    for name, item in block_items.items():
+    for item in block_items.values():
+        name = item.instance.name
         pos = item.pos()
         data["blocks"][name] = {
             "x": float(pos.x()),

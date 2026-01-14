@@ -50,7 +50,11 @@ class DisplayYamlDialog(QDialog):
         )
 
         # Layout.yaml
-        ltext = dump_layout_yaml(self.view.block_items)
+        if self.view.block_items:
+            blocks_items = self.view.block_items
+        else:
+            blocks_items = {}
+        ltext = dump_layout_yaml(blocks_items)
         tabs.addTab(
             self._make_code_view(ltext),
             "layout.yaml"

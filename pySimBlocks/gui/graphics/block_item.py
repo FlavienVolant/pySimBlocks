@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QGraphicsRectItem, QGraphicsItem, QStyle
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush, QColor, QPen
+from PySide6.QtGui import QColor, QPen
 
 from pySimBlocks.gui.dialogs.block_dialog import BlockDialog
 from pySimBlocks.gui.graphics.port_item import PortItem

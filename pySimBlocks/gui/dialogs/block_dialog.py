@@ -19,9 +19,9 @@ from pySimBlocks.gui.dialogs.help_dialog import HelpDialog
 
 
 class BlockDialog(QDialog):
-    def __init__(self, block, readonly=False):
+    def __init__(self, block, readonly: bool = False):
         super().__init__()
-        self.block = block
+        self.block = block # BlockItem
         self.readonly = readonly
         if self.readonly:
             self.setWindowTitle(f"[{self.block.instance.name}] Information")

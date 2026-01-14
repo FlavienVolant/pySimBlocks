@@ -1,4 +1,3 @@
-import re
 from PySide6.QtWidgets import QGraphicsView, QGraphicsScene
 from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QPainter
@@ -42,7 +41,7 @@ class DiagramView(QGraphicsView):
         block_item = BlockItem(instance, pos, self)
 
         self.scene.addItem(block_item)
-        self.block_items[instance.name] = block_item
+        self.block_items[instance.uid] = block_item
         event.acceptProposedAction()
 
     def start_connection(self, port):
@@ -118,7 +117,7 @@ class DiagramView(QGraphicsView):
     def delete_selected(self):
         for item in self.scene.selectedItems():
             if isinstance(item, BlockItem):
-                del self.block_items[item.instance.name]
+                del self.block_items[item.instance.uid]
                 self.project_state.remove_block(item.instance)
                 item.remove_all_connections()
                 self.scene.removeItem(item)
