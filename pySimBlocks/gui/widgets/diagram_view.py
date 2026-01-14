@@ -24,12 +24,19 @@ class DiagramView(QGraphicsView):
         self.project_state = project_state
         self.block_items: dict[str, BlockItem] = {}
 
+        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
+        self.setDragMode(QGraphicsView.RubberBandDrag)
+
+
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():
             event.acceptProposedAction()
 
+
     def dragMoveEvent(self, event):
         event.acceptProposedAction()
+
 
     def dropEvent(self, event):
         pos = self.mapToScene(event.position().toPoint())
@@ -43,6 +50,7 @@ class DiagramView(QGraphicsView):
         self.scene.addItem(block_item)
         self.block_items[instance.uid] = block_item
         event.acceptProposedAction()
+
 
     def start_connection(self, port):
         self.pending_port = port
@@ -104,7 +112,7 @@ class DiagramView(QGraphicsView):
                 self.project_state.add_block(instance)
                 block_item = BlockItem(instance, pos, self)
                 self.scene.addItem(block_item)
-                self.block_items[instance.name] = block_item
+                self.block_items[instance.uid] = block_item
             return
 
         # DELETE
@@ -112,7 +120,18 @@ class DiagramView(QGraphicsView):
             self.delete_selected()
             return
 
+        # ZOOM IN / OUT
+        if event.key() in (Qt.Key_Plus, Qt.Key_Equal) and event.modifiers() & Qt.ControlModifier:
+            self.scale_view(1.15)
+            return
+
+        if event.key() == Qt.Key_Minus and event.modifiers() & Qt.ControlModifier:
+            self.scale_view(1 / 1.15)
+            return
+
+
         super().keyPressEvent(event)
+
 
     def delete_selected(self):
         for item in self.scene.selectedItems():
@@ -134,3 +153,24 @@ class DiagramView(QGraphicsView):
             del item
         self.block_items.clear()
         self.pending_port = None
+
+
+    def wheelEvent(self, event):
+        if event.modifiers() & Qt.ControlModifier:
+            zoom_factor = 1.15
+            if event.angleDelta().y() > 0:
+                self.scale_view(zoom_factor)
+            else:
+                self.scale_view(1 / zoom_factor)
+            event.accept()
+        else:
+            super().wheelEvent(event)
+
+
+    def scale_view(self, factor):
+        current_scale = self.transform().m11()
+        min_scale, max_scale = 0.2, 5.0
+
+        new_scale = current_scale * factor
+        if min_scale <= new_scale <= max_scale:
+            self.scale(factor, factor)
