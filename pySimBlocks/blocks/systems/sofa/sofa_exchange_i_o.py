@@ -58,9 +58,7 @@ class SofaExchangeIO(Block):
             self.outputs[k] = None
 
     def initialize(self, t0: float):
-        # Outputs start as zero vectors
-        for k in self.output_keys:
-            self.outputs[k] = np.zeros((1, 1))
+        pass
 
     def output_update(self, t: float, dt: float):
         """
