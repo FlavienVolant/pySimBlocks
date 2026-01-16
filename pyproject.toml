@@ -33,6 +33,7 @@ where = ["."]
 pySimBlocks = [
     "blocks_metadata/**/*.yaml",
     "docs/blocks/**/*.md",
+    "project/pySimBlocks_blocks_index.yaml",
 ]
 
 [project.optional-dependencies]
