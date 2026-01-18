@@ -18,34 +18,6 @@ class BlockSource(Block):
     def __init__(self, name: str, sample_time: float | None = None):
         super().__init__(name, sample_time)
 
-    # ------------------------------------------------------------------
-    # Core normalization: always returns a 2D ndarray
-    # ------------------------------------------------------------------
-    def _to_2d_array(self, param_name: str, value, *, dtype=float) -> np.ndarray:
-        """
-        Normalize into a 2D NumPy array.
-
-        Rules:
-            - scalar -> (1,1)
-            - 1D -> (n,1) (column vector convention)
-            - 2D -> preserved as-is (m,n)
-            - ndim > 2 -> rejected
-        """
-        arr = np.asarray(value, dtype=dtype)
-
-        if arr.ndim == 0:
-            return arr.reshape(1, 1)
-
-        if arr.ndim == 1:
-            return arr.reshape(-1, 1)
-
-        if arr.ndim == 2:
-            return arr
-
-        raise ValueError(
-            f"[{self.name}] '{param_name}' must be scalar, 1D, or 2D array-like. "
-            f"Got ndim={arr.ndim} with shape {arr.shape}."
-        )
 
     # ------------------------------------------------------------------
     # Strict scalar-only broadcast policy (Option B)

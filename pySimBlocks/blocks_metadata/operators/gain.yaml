@@ -38,7 +38,7 @@ ports:
       pattern: in
       source:
         type: fixed
-      shape: [n, 1]
+      shape: [n, m]
       description: Input signal.
 
   outputs:
@@ -47,7 +47,7 @@ ports:
       pattern: out
       source:
         type: fixed
-      shape: [m, 1]
+      shape: [m, m]
       description: Output signal.
 
 execution:
