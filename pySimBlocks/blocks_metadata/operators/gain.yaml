@@ -25,7 +25,7 @@ parameters:
 
 ports:
   inputs:
-    - name: input
+    - name: in
       dynamic: false
       pattern: in
       source:
@@ -34,7 +34,7 @@ ports:
       description: Input signal.
 
   outputs:
-    - name: output
+    - name: out
       dynamic: false
       pattern: out
       source:

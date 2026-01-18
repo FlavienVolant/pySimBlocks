@@ -121,11 +121,6 @@ class AlgebraicFunction(Block):
                 raise TypeError(
                     f"{self.name}: input '{k}' is not a numpy array"
                 )
-            if u.ndim != 2 or u.shape[1] != 1:
-                raise ValueError(
-                    f"{self.name}: input '{k}' must have shape (n,1)"
-                )
-
             kwargs[k] = u
 
         # ---- call function
