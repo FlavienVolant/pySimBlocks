@@ -56,3 +56,12 @@ where:
 - Output dimensions are inferred from the first valid input if not explicitly
   initialized.
 - This block is equivalent to the Simulink **Delay** / **Unit Delay** block.
+- Policy:
+    + Signals are 2D arrays.
+    + Buffer always exists (never None).
+    + Shape is fixed either:
+        * immediately if initial_output is non-scalar 2D (shape != (1,1))
+        * otherwise at the first non-None input seen by the block
+    + If buffer is still "unfixed" and currently scalar (1,1), it can be
+      broadcast ONCE to match the first input shape.
+    + After shape is fixed, any shape mismatch raises.

@@ -21,37 +21,50 @@ class ExternalOutput(Block):
         Output:
             out: array (n,1)
                 Value forwarded to the external side as a column vector (n,1).
+
+    Policy:
+        - Accepts scalar, (n,), (n,1)
+        - Outputs strict (n,1)
+        - Once shape is known, it is frozen (cannot change)
     """
+    direct_feedthrough = True
 
     def __init__(self, name: str, sample_time: float | None = None):
         super().__init__(name, sample_time)
         self.inputs["in"] = None
         self.outputs["out"] = None
+        self._resolved_shape: tuple[int, int] | None = None
 
     # ------------------------------------------------------------------
-    @staticmethod
-    def _to_column(value, *, block_name: str, port_name: str) -> np.ndarray:
-        """
-        Convert scalar / (n,) / (n,1) to a strict (n,1) ndarray.
-        """
-        arr = np.asarray(value)
+    def _to_col_vec(self, value) -> np.ndarray:
+        arr = np.asarray(value, dtype=float)
 
         # scalar
         if arr.ndim == 0:
-            return arr.reshape(1, 1)
+            arr = arr.reshape(1, 1)
 
         # vector (n,)
-        if arr.ndim == 1:
-            return arr.reshape(-1, 1)
+        elif arr.ndim == 1:
+            arr = arr.reshape(-1, 1)
 
         # column (n,1)
-        if arr.ndim == 2 and arr.shape[1] == 1:
-            return arr
+        elif arr.ndim == 2 and arr.shape[1] == 1:
+            pass
 
-        raise ValueError(
-            f"[{block_name}] Input '{port_name}' must be scalar, (n,), or (n,1). "
-            f"Got shape {arr.shape}."
-        )
+        else:
+            raise ValueError(
+                f"[{self.name}] Input 'in' must be scalar, (n,), or (n,1). Got shape {arr.shape}."
+            )
+
+        # Freeze shape
+        if self._resolved_shape is None:
+            self._resolved_shape = arr.shape
+        elif arr.shape != self._resolved_shape:
+            raise ValueError(
+                f"[{self.name}] Input 'in' shape changed: expected {self._resolved_shape}, got {arr.shape}."
+            )
+
+        return arr
 
     # ------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
@@ -60,17 +73,16 @@ class ExternalOutput(Block):
             self.outputs["out"] = None
             return
 
-        self.outputs["out"] = self._to_column(u, block_name=self.name, port_name="in")
+        self.outputs["out"] = self._to_col_vec(u)
 
     # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Missing input 'in'.")
-
-        self.outputs["out"] = self._to_column(u, block_name=self.name, port_name="in")
+        self.outputs["out"] = self._to_col_vec(u)
 
     # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
-        # Stateless block
         pass
+

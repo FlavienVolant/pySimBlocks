@@ -32,6 +32,16 @@ class DiscreteDerivator(Block):
         - Direct feedthrough.
         - Shape is frozen as soon as known (initial_output or first input).
         - No implicit vector reshape; matrices are supported.
+        - Policy:
+            - Never propagate None: output is always at least (1,1) zeros.
+            - Shape is unresolved while only scalar placeholder (1,1) is seen and no
+              explicit initial_output is provided.
+            - If initial_output is provided -> shape is frozen immediately (including (1,1)).
+            - If no initial_output -> shape is frozen as soon as a non-scalar input arrives.
+            - Once shape is frozen -> any non-scalar mismatch raises ValueError.
+            - If shape frozen to (m,n) and input is scalar (1,1) -> broadcast scalar to (m,n).
+            - When shape is frozen from a first non-scalar input, u_prev is initialized to
+              that input to avoid bogus derivative spikes.
     """
 
     direct_feedthrough = True
@@ -53,103 +63,148 @@ class DiscreteDerivator(Block):
         self._resolved_shape: tuple[int, int] | None = None
         self._first_output = True
 
-        self._initial_output_raw = None
+        # Never None: placeholder output at minimum
+        self._placeholder = np.zeros((1, 1), dtype=float)
+
+        self._initial_output_raw: np.ndarray | None = None
         if initial_output is not None:
-            y0 = self._to_2d_array("initial_output", initial_output)
-            # initial_output fixes the shape (even (1,1))
+            y0 = self._to_2d_array("initial_output", initial_output).astype(float)
             self._initial_output_raw = y0.copy()
-            self.outputs["out"] = y0.copy()
+
+            # initial_output freezes shape (including (1,1))
             self._resolved_shape = y0.shape
+            self.outputs["out"] = y0.copy()
+        else:
+            self.outputs["out"] = self._placeholder.copy()
 
     # -------------------------------------------------------
-    def _ensure_shape(self, u: np.ndarray) -> None:
+    def _maybe_freeze_shape_from(self, u: np.ndarray) -> None:
+        """
+        Freeze shape if:
+          - no initial_output has already frozen it
+          - shape unresolved
+          - u is non-scalar (shape != (1,1))
+        """
         if u.ndim != 2:
             raise ValueError(
                 f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
             )
 
-        if self._resolved_shape is None:
-            self._resolved_shape = u.shape
-            # If no initial_output was provided, initialize output to zeros now
-            if self.outputs["out"] is None:
-                self.outputs["out"] = np.zeros_like(u)
+        # If shape is already frozen (by initial_output), nothing to do
+        if self._resolved_shape is not None:
             return
 
-        if u.shape != self._resolved_shape:
+        # Only freeze when a non-scalar appears
+        if u.shape != (1, 1):
+            self._resolved_shape = u.shape
+
+            # Upgrade current output placeholder to correct shape (keep current scalar value)
+            y = np.asarray(self.outputs["out"], dtype=float)
+            if y.shape == (1, 1):
+                scalar = float(y[0, 0])
+                self.outputs["out"] = np.full(self._resolved_shape, scalar, dtype=float)
+
+            # Initialize u_prev to current u to avoid a derivative spike
+            self.state["u_prev"] = u.copy()
+            self.next_state["u_prev"] = u.copy()
+
+    # -------------------------------------------------------
+    def _normalize_input(self, u: ArrayLike | None) -> np.ndarray:
+        """
+        Normalize u to 2D, apply freezing rule and scalar broadcasting.
+        If u is None: return zeros of resolved shape if known, else (1,1) zeros.
+        """
+        if u is None:
+            if self._resolved_shape is not None:
+                return np.zeros(self._resolved_shape, dtype=float)
+            return self._placeholder.copy()
+
+        u_arr = np.asarray(u, dtype=float)
+        if u_arr.ndim != 2:
             raise ValueError(
-                f"[{self.name}] Input 'in' shape changed: expected {self._resolved_shape}, got {u.shape}."
+                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u_arr.ndim} with shape {u_arr.shape}."
             )
+
+        # If shape not frozen yet and u is non-scalar -> freeze now
+        self._maybe_freeze_shape_from(u_arr)
+
+        # If shape is frozen: enforce or broadcast
+        if self._resolved_shape is not None:
+            if u_arr.shape == (1, 1) and self._resolved_shape != (1, 1):
+                return np.full(self._resolved_shape, float(u_arr[0, 0]), dtype=float)
+
+            if u_arr.shape != self._resolved_shape:
+                raise ValueError(
+                    f"[{self.name}] Input 'in' shape changed: expected {self._resolved_shape}, got {u_arr.shape}."
+                )
+
+        return u_arr
 
     # -------------------------------------------------------
     def initialize(self, t0: float) -> None:
         """
-        Initialization rules:
-            - If initial_output exists: keep it as current output.
-            - If input exists: freeze shape (if not already), and set u_prev = u(0).
-            - If input missing: do not create u_prev; output remains
-              (initial_output if provided, else None).
+        Never propagate None:
+          - output already set (initial_output or placeholder (1,1)).
+          - if input exists, we can set u_prev consistently.
+          - if input missing, keep u_prev=None (or already set if frozen on first non-scalar later).
         """
         u = self.inputs["in"]
+
         if u is None:
-            # If initial_output exists, it's already set and shape fixed.
-            # Else output stays None until first input appears.
+            # Keep output as-is (initial_output or placeholder)
             self.state["u_prev"] = None
             self.next_state["u_prev"] = None
+            self._first_output = True
             return
 
-        u = np.asarray(u, dtype=float)
-        self._ensure_shape(u)
+        u_arr = self._normalize_input(u)
 
-        self.state["u_prev"] = u.copy()
-        self.next_state["u_prev"] = u.copy()
-
-        # If no initial_output given, ensure out exists (zeros_like(u))
-        if self.outputs["out"] is None:
-            self.outputs["out"] = np.zeros_like(u)
+        # If initial_output froze shape, _normalize_input enforces it.
+        # Store u_prev to support derivative at next step.
+        self.state["u_prev"] = u_arr.copy()
+        self.next_state["u_prev"] = u_arr.copy()
+        self._first_output = True
 
     # -------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
         """
         First call policy:
-            - If initial_output was provided: keep it for the first output_update call.
-            - Otherwise: output zeros on the first call.
+          - If initial_output provided: keep it for first output_update.
+          - Else: keep zero output for first call.
 
         Afterwards:
-            y = (u - u_prev) / dt
+          y = (u - u_prev) / dt
         """
-        u = self.inputs["in"]
-        if u is None:
-            raise RuntimeError(f"[{self.name}] Input 'in' not set.")
-
-        u = np.asarray(u, dtype=float)
-        self._ensure_shape(u)
+        u_arr = self._normalize_input(self.inputs["in"])
 
         if self._first_output:
             self._first_output = False
-            # Keep initial_output if it exists, otherwise enforce zeros
-            if self.outputs["out"] is None:
-                self.outputs["out"] = np.zeros_like(u)
+            # output already set (initial_output or placeholder); ensure shape if frozen
+            if self._resolved_shape is not None and self.outputs["out"] is not None:
+                y = np.asarray(self.outputs["out"], dtype=float)
+                if y.shape == (1, 1) and self._resolved_shape != (1, 1):
+                    self.outputs["out"] = np.full(self._resolved_shape, float(y[0, 0]), dtype=float)
             return
 
         u_prev = self.state["u_prev"]
         if u_prev is None:
-            # No previous value -> derivative defined as zero
-            self.outputs["out"] = np.zeros_like(u)
+            # No previous value -> define derivative as zero (same shape as u)
+            self.outputs["out"] = np.zeros_like(u_arr)
             return
 
-        # shape already enforced by _ensure_shape
-        self.outputs["out"] = (u - u_prev) / dt
+        # If shape frozen and u_prev is scalar, broadcast it
+        u_prev_arr = np.asarray(u_prev, dtype=float)
+        if self._resolved_shape is not None and u_prev_arr.shape == (1, 1) and self._resolved_shape != (1, 1):
+            u_prev_arr = np.full(self._resolved_shape, float(u_prev_arr[0, 0]), dtype=float)
+
+        if u_prev_arr.shape != u_arr.shape:
+            raise ValueError(
+                f"[{self.name}] Previous input shape mismatch: u_prev={u_prev_arr.shape}, u={u_arr.shape}."
+            )
+
+        self.outputs["out"] = (u_arr - u_prev_arr) / dt
 
     # -------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
-        """
-        Update previous input.
-        """
-        u = self.inputs["in"]
-        if u is None:
-            raise RuntimeError(f"[{self.name}] Input 'in' not set.")
-
-        u = np.asarray(u, dtype=float)
-        self._ensure_shape(u)
-
-        self.next_state["u_prev"] = u.copy()
+        u_arr = self._normalize_input(self.inputs["in"])
+        self.next_state["u_prev"] = u_arr.copy()

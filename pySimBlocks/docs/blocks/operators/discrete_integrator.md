@@ -71,3 +71,13 @@ where:
 - The integrator uses a fixed-step discrete formulation.
 - Input dimension changes between steps are not allowed.
 - This block is equivalent to the Simulink **Discrete-Time Integrator** block.
+- Policy:
+    + Never propagate None: output is always a 2D array (at least (1,1)).
+    + Shape is NOT frozen while we are in placeholder shape (1,1) and no explicit
+      non-scalar initial_state was given.
+    + As soon as a non-scalar input appears (shape != (1,1)), the shape becomes frozen.
+    + If initial_state is provided and non-scalar, it freezes the shape immediately.
+      If initial_state is scalar (1,1), it is treated as a placeholder: can be upgraded
+      once a non-scalar input appears.
+    + After shape is frozen, any non-scalar input shape mismatch raises ValueError.
+    + If shape is frozen to (m,n), scalar input (1,1) is broadcast to (m,n).

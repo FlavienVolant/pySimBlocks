@@ -189,6 +189,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         self._build_model()
         self._detect_sofa_exchange_block()
         self.sim = Simulator(self.model, self.sim_cfg, verbose=self.verbose)
+        self._get_sofa_outputs()
         self.sim.initialize()
         self.sim_index = 0
 
@@ -267,7 +268,9 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
             for var in plot["signals"]:
                 block_name, _, key = var.split(".")
                 self._plot_data[f"{block_name}.{key}"] = self._plot_node.addChild(f"{block_name}_{key}")
+                print(f"Adding plot for {block_name}.{key}") 
                 value = self.sim.model.blocks[block_name].outputs[key].flatten()
+                print(f"Value shape: {value.shape}, value: {value}")
                 for i in range(len(value)):
                     self._plot_data[f"{block_name}.{key}"].addData(name=f"value{i}", type="float", value=value[i])
                     MyGui.PlottingWindow.addData(f"{block_name}.{key}[{i}]", self._plot_data[f"{block_name}.{key}"].getData(f"value{i}"))

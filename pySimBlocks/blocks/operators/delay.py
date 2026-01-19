@@ -34,6 +34,15 @@ class Delay(Block):
         - Output at time k is the input at time k − N.
         - Buffer shape is inferred from the first available input if not
           explicitly initialized.
+        - Policy:
+            + Signals are 2D arrays.
+            + Buffer always exists (never None).
+            + Shape is fixed either:
+                * immediately if initial_output is non-scalar 2D (shape != (1,1))
+                * otherwise at the first non-None input seen by the block
+            + If buffer is still "unfixed" and currently scalar (1,1), it can be
+              broadcast ONCE to match the first input shape.
+            + After shape is fixed, any shape mismatch raises.
     """
 
     direct_feedthrough = False
@@ -57,106 +66,91 @@ class Delay(Block):
         self.state["buffer"] = None
         self.next_state["buffer"] = None
 
+        # Shape management
+        self._shape_fixed: bool = False
         self._buffer_shape: tuple[int, int] | None = None
-        self._initial_value: np.ndarray | None = None
+
+        # Initialize buffer as (1,1) by default, but NOT fixed yet.
+        init = np.zeros((1, 1), dtype=float)
 
         if initial_output is not None:
             arr = self._to_2d_array("initial_output", initial_output)
-            self._initial_value = arr  # may be scalar (1,1) or non-scalar
-            # If non-scalar, we already know the buffer shape now.
-            if arr.shape != (1, 1):
-                self._buffer_shape = arr.shape
-                self.state["buffer"] = [arr.copy() for _ in range(self.num_delays)]
+            init = arr.astype(float, copy=False)
+
+            # If user provides a non-scalar 2D initial_output, shape is fixed now.
+            if not self._is_scalar_2d(init):
+                self._shape_fixed = True
+                self._buffer_shape = init.shape
+
+        # Buffer always exists (never None)
+        self.state["buffer"] = [init.copy() for _ in range(self.num_delays)]
+        self.next_state["buffer"] = None
 
     # ------------------------------------------------------------------
-    def _ensure_buffer_initialized(self, u: np.ndarray) -> None:
+    def _ensure_shape_and_buffer(self, u: np.ndarray) -> None:
         """
-        Ensure buffer exists and has a fixed, constant shape.
-
-        Policy (strict):
-            - u must be 2D
-            - once buffer shape is known, it must never change (including (1,1))
-            - if buffer not initialized, infer shape from:
-                * existing non-scalar initial_output (already initialized in __init__)
-                * otherwise from the first available input u
-            - if initial_output is scalar (1,1) and first input is non-scalar:
-                * broadcast scalar to input shape ONCE at initialization time (allowed only
-                  if buffer shape was not previously fixed)
-            - after initialization, any input shape mismatch raises ValueError
+        Ensure:
+            - u is 2D
+            - buffer exists
+            - shape is fixed at the right time
+            - after shape is fixed, input must match buffer shape
         """
         if u.ndim != 2:
             raise ValueError(
                 f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u.ndim} with shape {u.shape}."
             )
 
-        # If buffer already exists, enforce strict shape match
-        if self.state["buffer"] is not None:
-            expected = self.state["buffer"][0].shape
+        buf0 = self.state["buffer"][0]
+        assert buf0 is not None
+
+        # If already fixed, enforce strict match
+        if self._shape_fixed:
+            expected = buf0.shape
             if u.shape != expected:
                 raise ValueError(
-                    f"[{self.name}] Input 'in' shape changed or mismatched with buffer: "
-                    f"expected {expected}, got {u.shape}."
+                    f"[{self.name}] Input 'in' shape mismatch: expected {expected}, got {u.shape}."
                 )
             return
 
-        # Buffer not initialized yet: decide the target shape
-        target_shape = None
+        # Not fixed yet: decide whether we can/should fix now
+        # We fix the shape the first time we see a non-None input (whatever its shape is).
+        target_shape = u.shape
 
-        # If a non-scalar initial_output was provided, __init__ already initialized buffer,
-        # so we should not reach here. Keep for safety.
-        if self._buffer_shape is not None:
-            target_shape = self._buffer_shape
-        else:
-            target_shape = u.shape
+        # If buffer is scalar placeholder, broadcast it to target shape (one-time)
+        if self._is_scalar_2d(buf0) and target_shape != (1, 1):
+            scalar = float(buf0[0, 0])
+            self.state["buffer"] = [
+                np.full(target_shape, scalar, dtype=float) for _ in range(self.num_delays)
+            ]
+            buf0 = self.state["buffer"][0]
 
-        # Initialize buffer
-        # If initial_output is scalar, broadcast it to target_shape (only at initialization)
-        if self._initial_value is not None and self._initial_value.shape == (1, 1):
-            scalar = float(self._initial_value[0, 0])
-            init = np.full(target_shape, scalar, dtype=float)
-            self.state["buffer"] = [init.copy() for _ in range(self.num_delays)]
-            self._buffer_shape = target_shape
-            return
+        # If buffer is not scalar but we are not fixed yet, it must already match target shape
+        # (This can happen if you later decide to relax some init logic; keep strict.)
+        if buf0.shape != target_shape:
+            raise ValueError(
+                f"[{self.name}] Cannot infer a consistent delay shape: "
+                f"buffer currently {buf0.shape} but first input is {target_shape}."
+            )
 
-        # Default: zeros
-        zeros = np.zeros(target_shape, dtype=float)
-        self.state["buffer"] = [zeros.copy() for _ in range(self.num_delays)]
+        # Now we can fix shape (including (1,1))
+        self._shape_fixed = True
         self._buffer_shape = target_shape
 
     # ------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
-        buffer = self.state["buffer"]
+        # Output always defined from buffer (important for loops)
+        self.outputs["out"] = self.state["buffer"][0].copy()
+
+        # If an input is already available at init, fix shape immediately
         u = self.inputs["in"]
-
-        # If buffer already exists (non-scalar initial_output case)
-        if buffer is not None:
-            self.outputs["out"] = buffer[0].copy()
-            return
-
-        # If input available, infer shape and create buffer (zeros or broadcasted scalar init)
         if u is not None:
             u_arr = np.asarray(u, dtype=float)
-            self._ensure_buffer_initialized(u_arr)
-            self.outputs["out"] = self.state["buffer"][0].copy()
-            return
-
-        # Else defer
-        self.outputs["out"] = None
+            self._ensure_shape_and_buffer(u_arr)
 
     # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
-        buffer = self.state["buffer"]
-
-        # If buffer is missing, infer from current input
-        if buffer is None:
-            u = self.inputs["in"]
-            if u is None:
-                raise RuntimeError(f"[{self.name}] Delay buffer uninitialized (no input).")
-            u_arr = np.asarray(u, dtype=float)
-            self._ensure_buffer_initialized(u_arr)
-            buffer = self.state["buffer"]
-
-        self.outputs["out"] = buffer[0].copy()
+        # Output does not require current input; it is purely delayed state.
+        self.outputs["out"] = self.state["buffer"][0].copy()
 
     # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
@@ -165,21 +159,17 @@ class Delay(Block):
             raise RuntimeError(f"[{self.name}] Input 'in' is not connected or not set.")
 
         u_arr = np.asarray(u, dtype=float)
-        if u_arr.ndim != 2:
-            raise ValueError(
-                f"[{self.name}] Input 'in' must be a 2D array. Got ndim={u_arr.ndim} with shape {u_arr.shape}."
-            )
 
-        # Ensure buffer exists and matches shape (scalar-only upgrade allowed)
-        self._ensure_buffer_initialized(u_arr)
+        # Fix shape on first available input; then enforce forever
+        self._ensure_shape_and_buffer(u_arr)
 
         buffer = self.state["buffer"]
-        assert buffer is not None  # for type checkers
 
-        # Shift left and append current u
+        # Shift left and append u
         new_buffer = []
         for i in range(self.num_delays - 1):
             new_buffer.append(buffer[i + 1].copy())
         new_buffer.append(u_arr.copy())
 
         self.next_state["buffer"] = new_buffer
+

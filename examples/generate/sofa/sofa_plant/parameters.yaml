@@ -7,8 +7,10 @@ blocks:
     signs: +-
   Kp:
     gain: [[0.5]]
+    multiplication: Element wise (K * u)
   Ki:
     gain: [[0.8]]
+    multiplication: Element wise (K * u)
   integrator:
     initial_state: [[0.0]]
     method: euler forward

@@ -47,188 +47,150 @@ class Pid(Block):
 
 
     # ---------------------------------------------------------------------
-    def __init__(self,
-                 name: str,
-                 controller:str = "PID",
-                 Kp: ArrayLike = 0.0,
-                 Ki: ArrayLike = 0.0,
-                 Kd: ArrayLike = 0.0,
-                 u_min: ArrayLike | None = None,
-                 u_max: ArrayLike | None = None,
-                 integration_method: str = 'euler forward',
-                 sample_time: float | None = None
+    def __init__(
+        self,
+        name: str,
+        controller: str = "PID",
+        Kp: ArrayLike = 0.0,
+        Ki: ArrayLike = 0.0,
+        Kd: ArrayLike = 0.0,
+        u_min: ArrayLike | None = None,
+        u_max: ArrayLike | None = None,
+        integration_method: str = "euler forward",
+        sample_time: float | None = None,
     ):
         super().__init__(name, sample_time)
 
-        # -------------------------
-        # Validate controller type
-        # -------------------------
         controller = controller.upper()
         allowed_types = {"P", "I", "PI", "PD", "PID"}
         if controller not in allowed_types:
             raise ValueError(
-                f"[{name}] Invalid controller type '{controller}'. "
-                f"Allowed: {allowed_types}"
+                f"[{self.name}] Invalid controller type '{controller}'. Allowed: {allowed_types}"
             )
         self.controller = controller
 
-        # -------------------------------
-        # 1) Validate and normalize gains
-        # -------------------------------
-        self.Kp = self._normalize_and_check_gain(Kp, "Kp")
-        self.Ki = self._normalize_and_check_gain(Ki, "Ki")
-        self.Kd = self._normalize_and_check_gain(Kd, "Kd")
-
-        # -------------------------
-        # Validate required gains
-        # -------------------------
-        self._validate_gains()
-
-        # -------------------------------
-        # 2) Validate saturation bounds
-        # -------------------------------
-        if u_min is not None:
-            self.u_min = self._normalize_and_check_scalar(u_min, "u_min")
-        else:
-            self.u_min = None
-
-        if u_max is not None:
-            self.u_max = self._normalize_and_check_scalar(u_max, "u_max")
-        else:
-            self.u_max = None
-
-        if self.u_min is not None and self.u_max is not None:
-            if self.u_min > self.u_max:
-                raise ValueError(
-                    f"[{self.name}] u_min ({self.u_min}) must be <= u_max ({self.u_max})."
-                )
-
-        # ---------------------------------
-        # Validate method
-        # ---------------------------------
         self.integration_method = integration_method.lower()
         allowed = ("euler forward", "euler backward")
         if self.integration_method not in allowed:
             raise ValueError(
-                f"[{self.name}] Unsupported method '{self.integration_method}'. "
-                f"Allowed: {allowed}"
+                f"[{self.name}] Unsupported method '{self.integration_method}'. Allowed: {allowed}"
             )
 
-        # specify feedthrough
-        if self.controller == "I" and self.integration_method == "euler forward":
-            self.direct_feedthrough = False
+        # Gains (SISO, (1,1))
+        self.Kp = self._to_siso("Kp", Kp)
+        self.Ki = self._to_siso("Ki", Ki)
+        self.Kd = self._to_siso("Kd", Kd)
 
-        # -------------------------------
-        # 3) Declare ports
-        # -------------------------------
+        self.u_min = None if u_min is None else self._to_siso("u_min", u_min)
+        self.u_max = None if u_max is None else self._to_siso("u_max", u_max)
+
+        if self.u_min is not None and self.u_max is not None:
+            if float(self.u_min[0, 0]) > float(self.u_max[0, 0]):
+                raise ValueError(
+                    f"[{self.name}] u_min ({self.u_min.item()}) must be <= u_max ({self.u_max.item()})."
+                )
+
+        # Warnings
+        self._validate_gains()
+
+        # Direct feedthrough policy
+        has_p = "P" in self.controller
+        has_d = "D" in self.controller
+        has_i = "I" in self.controller
+
+        if has_p or has_d:
+            self.direct_feedthrough = True
+        else:
+            # I-only
+            self.direct_feedthrough = (self.integration_method == "euler backward")
+
+        # Ports
         self.inputs["e"] = None
         self.outputs["u"] = None
 
-        # -------------------------------
-        # 4) Internal state (SISO → always (1,1))
-        # -------------------------------
-        self.state["x_i"] = np.zeros((1,1))     # integral state
-        self.state["e_prev"] = np.zeros((1,1))  # previous error
+        # State (SISO)
+        self.state["x_i"] = np.zeros((1, 1), dtype=float)
+        self.state["e_prev"] = np.zeros((1, 1), dtype=float)
+        self.next_state["x_i"] = np.zeros((1, 1), dtype=float)
+        self.next_state["e_prev"] = np.zeros((1, 1), dtype=float)
 
-        self.next_state["x_i"] = np.zeros((1,1))
-        self.next_state["e_prev"] = np.zeros((1,1))
-
-
-    # =====================================================================
-    #  Utility: Normalize a scalar-like value and check it is SISO
-    # =====================================================================
-    def _normalize_and_check_gain(self, value, name):
-        """Convert float/list/array to (1,1) ndarray. Reject anything else."""
-        # float
+    # ------------------------------------------------------------------
+    def _to_siso(self, name: str, value: ArrayLike) -> np.ndarray:
+        """
+        Normalize scalar-like into (1,1). Reject anything else (strict SISO).
+        """
         if np.isscalar(value):
-            return np.array([[float(value)]])
+            return np.array([[float(value)]], dtype=float)
 
         arr = np.asarray(value, dtype=float)
 
-        # numpy scalar
         if arr.shape == ():
-            return np.array([[float(arr)]])
-
-        # vector of length 1
+            return np.array([[float(arr)]], dtype=float)
         if arr.shape == (1,):
-            return arr.reshape((1,1))
-
-        # already (1,1)
-        if arr.shape == (1,1):
+            return arr.reshape(1, 1)
+        if arr.shape == (1, 1):
             return arr
 
         raise ValueError(
-            f"[{self.name}] Gain '{name}' must be scalar-like (float, list of length 1, "
-            f"array of shape (1,), or (1,1)). Received shape {arr.shape}."
+            f"[{self.name}] '{name}' must be scalar-like ((), (1,), or (1,1)). Got shape {arr.shape}."
         )
 
-    def _normalize_and_check_scalar(self, value, name):
-        """Normalize a scalar-like parameter for saturations."""
-        if np.isscalar(value):
-            return np.array([[float(value)]])
+    def _validate_gains(self) -> None:
+        kp = float(self.Kp[0, 0])
+        ki = float(self.Ki[0, 0])
+        kd = float(self.Kd[0, 0])
 
-        arr = np.asarray(value, dtype=float)
-        if arr.shape == ():
-            return np.array([[float(arr)]])
-        if arr.shape == (1,):
-            return arr.reshape(1,1)
-        if arr.shape == (1,1):
-            return arr
-
-        raise ValueError(
-            f"[{self.name}] Parameter '{name}' must be scalar-like. Received shape {arr.shape}."
-        )
-
-    def _validate_gains(self):
-        if self.controller in {"P", "PI", "PID", "PD"} and self.Kp == 0:
+        if "P" in self.controller and kp == 0.0:
             warnings.warn(
                 f"[{self.name}] Kp=0 while controller '{self.controller}' includes a P term.",
-                UserWarning
+                UserWarning,
             )
-
-        if self.controller in {"I", "PI", "PID"} and self.Ki == 0:
+        if "I" in self.controller and ki == 0.0:
             warnings.warn(
-                f"[{self.name}] Ki=0 while controller '{self.controller}' includes a I term.",
-                UserWarning
+                f"[{self.name}] Ki=0 while controller '{self.controller}' includes an I term.",
+                UserWarning,
             )
-
-        if self.controller in {"PD", "PID"} and self.Kd == 0:
+        if "D" in self.controller and kd == 0.0:
             warnings.warn(
                 f"[{self.name}] Kd=0 while controller '{self.controller}' includes a D term.",
-                UserWarning
+                UserWarning,
             )
 
-    # =====================================================================
-    # Initialization
-    # =====================================================================
+    # ------------------------------------------------------------------
     def initialize(self, t0: float):
-        # PID outputs start at zero
-        self.outputs["u"] = np.zeros((1,1))
+        # Start at zero command, keep internal states at zero.
+        self.outputs["u"] = np.zeros((1, 1), dtype=float)
 
-    # =====================================================================
-    # Phase 1 : output_update
-    # =====================================================================
+    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float):
-        e = self.inputs["e"]
-        if e is None:
+        e_in = self.inputs["e"]
+        if e_in is None:
             raise RuntimeError(f"[{self.name}] Missing input 'e'.")
-        e = np.asarray(e).reshape(1,1)
+
+        e = self._to_siso("e", e_in)
 
         x_i = self.state["x_i"]
         e_prev = self.state["e_prev"]
 
-        # P, I, D terms
-        P = self.Kp * e
-        if self.integration_method == "euler forward":
-            I = x_i
-        elif self.integration_method == "euler backward":
-            I = x_i + self.Ki * e * dt
+        has_p = "P" in self.controller
+        has_i = "I" in self.controller
+        has_d = "D" in self.controller
 
-        D = self.Kd * (e - e_prev) / dt
+        P = self.Kp * e if has_p else np.zeros((1, 1), dtype=float)
+
+        if has_i:
+            if self.integration_method == "euler forward":
+                I = x_i
+            else:
+                I = x_i + self.Ki * e * dt
+        else:
+            I = np.zeros((1, 1), dtype=float)
+
+        D = (self.Kd * (e - e_prev) / dt) if has_d else np.zeros((1, 1), dtype=float)
 
         u = P + I + D
 
-        # Apply saturation
+        # Saturation
         if self.u_min is not None:
             u = np.maximum(u, self.u_min)
         if self.u_max is not None:
@@ -236,19 +198,23 @@ class Pid(Block):
 
         self.outputs["u"] = u
 
-    # =====================================================================
-    # Phase 2 : state_update
-    # =====================================================================
+    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float):
-        e = np.asarray(self.inputs["e"]).reshape(1,1)
+        e_in = self.inputs["e"]
+        if e_in is None:
+            raise RuntimeError(f"[{self.name}] Missing input 'e'.")
 
-        # Integrator update
-        if self.integration_method == "euler forward":
+        e = self._to_siso("e", e_in)
+
+        has_i = "I" in self.controller
+
+        # Integrator update only if I term is enabled
+        if has_i:
             x_i_next = self.state["x_i"] + self.Ki * e * dt
-        elif self.integration_method == "euler backward":
-            x_i_next = self.outputs["u"] - (self.Kp * e + self.Kd * (e - self.state["e_prev"]) / dt)
+        else:
+            x_i_next = self.state["x_i"].copy()
 
-        # Anti-windup: clamp integral state
+        # Anti-windup (clamp integral state if saturation is defined)
         if self.u_min is not None:
             x_i_next = np.maximum(x_i_next, self.u_min)
         if self.u_max is not None:

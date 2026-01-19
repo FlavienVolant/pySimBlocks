@@ -47,7 +47,7 @@ def main():
     dt = 0.1
     T = 2.
     sim_cfg = SimulationConfig(dt, T)
-    sim = Simulator(model, sim_cfg)
+    sim = Simulator(model, sim_cfg, verbose=True)
 
     # -------------------------------------------------------
     # 4. Run the simulation for 2 seconds

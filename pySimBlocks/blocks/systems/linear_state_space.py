@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from pySimBlocks.core.block import Block
 
 
@@ -41,96 +42,113 @@ class LinearStateSpace(Block):
     def __init__(
         self,
         name: str,
-        A: np.ndarray,
-        B: np.ndarray,
-        C: np.ndarray,
-        x0: np.ndarray | None = None,
-        sample_time: float | None = None
+        A: ArrayLike,
+        B: ArrayLike,
+        C: ArrayLike,
+        x0: ArrayLike | None = None,
+        sample_time: float | None = None,
     ):
         super().__init__(name, sample_time)
 
-        # ------------------------------------------------------------------
-        # Store and check matrices
-        # ------------------------------------------------------------------
         self.A = np.asarray(A, dtype=float)
         self.B = np.asarray(B, dtype=float)
         self.C = np.asarray(C, dtype=float)
 
-        n = self.A.shape[0]
+        # --- basic matrix checks
+        if self.A.ndim != 2:
+            raise ValueError(f"[{self.name}] A must be 2D. Got shape {self.A.shape}.")
+        if self.B.ndim != 2:
+            raise ValueError(f"[{self.name}] B must be 2D. Got shape {self.B.shape}.")
+        if self.C.ndim != 2:
+            raise ValueError(f"[{self.name}] C must be 2D. Got shape {self.C.shape}.")
 
+        n = self.A.shape[0]
         if self.A.shape != (n, n):
-            raise ValueError("A must be square (n x n).")
+            raise ValueError(f"[{self.name}] A must be square (n,n). Got {self.A.shape}.")
 
         if self.B.shape[0] != n:
-            raise ValueError("B must have the same number of rows as A.")
+            raise ValueError(
+                f"[{self.name}] B must have n rows. A is {self.A.shape}, B is {self.B.shape}."
+            )
 
         if self.C.shape[1] != n:
-            raise ValueError("C must have the same number of columns as A.")
+            raise ValueError(
+                f"[{self.name}] C must have n columns. A is {self.A.shape}, C is {self.C.shape}."
+            )
 
-        # ------------------------------------------------------------------
-        # Initial state x0
-        # ------------------------------------------------------------------
+        self._n = n
+        self._m = self.B.shape[1]
+        self._p = self.C.shape[0]
+
+        # --- initial state x0
         if x0 is None:
-            x0 = np.zeros((n, 1), dtype=float)
+            x0_arr = np.zeros((n, 1), dtype=float)
         else:
-            x0 = np.asarray(x0, dtype=float).reshape(-1, 1)
-            if x0.shape != (n, 1):
-                raise ValueError(f"x0 must have shape ({n}, 1).")
+            x0_arr = np.asarray(x0, dtype=float)
+            if x0_arr.ndim == 0:
+                # scalar x0 is not acceptable for n>1
+                x0_arr = x0_arr.reshape(1, 1)
+            elif x0_arr.ndim == 1:
+                x0_arr = x0_arr.reshape(-1, 1)
+            elif x0_arr.ndim == 2:
+                pass
+            else:
+                raise ValueError(f"[{self.name}] x0 must be 1D or 2D. Got shape {x0_arr.shape}.")
 
-        self.state["x"] = x0
-        self.next_state["x"] = x0.copy()
+            if x0_arr.shape != (n, 1):
+                raise ValueError(f"[{self.name}] x0 must have shape ({n}, 1). Got {x0_arr.shape}.")
 
-        # ------------------------------------------------------------------
-        # Ports
-        # ------------------------------------------------------------------
-        # Single input "u" (m,1). Value is provided by the simulator.
+        self.state["x"] = x0_arr.copy()
+        self.next_state["x"] = x0_arr.copy()
+
+        # ports
         self.inputs["u"] = None
-
-        # Single output "y" (p,1)
         self.outputs["y"] = None
         self.outputs["x"] = None
 
-    # ----------------------------------------------------------------------
-    # INITIALIZATION
-    # ----------------------------------------------------------------------
-    def initialize(self, t0: float) -> None:
-        """
-        Compute initial output y[0] from x[0] and (if available) u[0].
+    # ------------------------------------------------------------------
+    def _to_col_vec(self, name: str, value: ArrayLike, expected_rows: int) -> np.ndarray:
+        arr = np.asarray(value, dtype=float)
 
-        If u is not yet known at initialization, we assume u[0] = 0
-        for the initial output (but NOT for the subsequent steps).
-        """
+        if arr.ndim == 0:
+            arr = arr.reshape(1, 1)
+        elif arr.ndim == 1:
+            arr = arr.reshape(-1, 1)
+        elif arr.ndim == 2:
+            pass
+        else:
+            raise ValueError(f"[{self.name}] {name} must be 1D or 2D. Got shape {arr.shape}.")
+
+        if arr.shape[1] != 1:
+            raise ValueError(f"[{self.name}] {name} must be a column vector (k,1). Got {arr.shape}.")
+
+        if arr.shape[0] != expected_rows:
+            raise ValueError(
+                f"[{self.name}] {name} must have shape ({expected_rows},1). Got {arr.shape}."
+            )
+
+        return arr
+
+    # ------------------------------------------------------------------
+    def initialize(self, t0: float) -> None:
         x = self.state["x"]
         self.outputs["y"] = self.C @ x
-
-        # Keep next_state consistent (no state change at t0)
         self.outputs["x"] = x.copy()
         self.next_state["x"] = x.copy()
 
-    # ----------------------------------------------------------------------
-    # PHASE 1 : OUTPUT UPDATE
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
-        """
-        Compute y[k] = C x[k] from current state and input.
-        """
         x = self.state["x"]
-
         self.outputs["y"] = self.C @ x
         self.outputs["x"] = x.copy()
 
-    # ----------------------------------------------------------------------
-    # PHASE 2 : STATE UPDATE
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
-        """
-        Compute x[k+1] = A x[k] + B u[k].
-        """
         u = self.inputs["u"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'u' is not connected or not set.")
 
-        u = np.asarray(u).reshape(self.B.shape[1], 1)
+        u_vec = self._to_col_vec("u", u, self._m)
         x = self.state["x"]
 
-        self.next_state["x"] = self.A @ x + self.B @ u
+        self.next_state["x"] = self.A @ x + self.B @ u_vec

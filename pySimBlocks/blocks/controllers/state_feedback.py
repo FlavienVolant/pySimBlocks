@@ -7,104 +7,108 @@ class StateFeedback(Block):
     Discrete-time state-feedback controller block.
 
     Summary:
-        Implements a static discrete-time state-feedback control law
-        combining reference feedforward and state feedback.
+        Implements a static discrete-time state-feedback control law:
+            u = G @ r - K @ x
 
-    Parameters (overview):
-        K : array-like
+    Parameters:
+        K : array-like, shape (m, n)
             State feedback gain matrix.
-        G : array-like
+        G : array-like, shape (m, p)
             Reference feedforward gain matrix.
         sample_time : float, optional
             Block execution period.
 
-    I/O:
-        Inputs:
-            r : reference vector.
-            x : state measurement vector.
-        Outputs:
-            u : control input vector.
+    Inputs:
+        r : array (p, 1)
+            Reference vector.
+        x : array (n, 1)
+            State vector.
+
+    Outputs:
+        u : array (m, 1)
+            Control vector.
 
     Notes:
-        - The controller is static and has no internal state.
-        - The control law is evaluated at each simulation step.
-        - Both reference and state inputs must be connected.
+        - Stateless block.
+        - This block intentionally enforces column-vector inputs.
+        - No implicit flattening is performed.
     """
 
+    direct_feedthrough = True
 
-
-    def __init__(self,
-        name: str,
-        K: np.ndarray,
-        G: np.ndarray,
-        sample_time: float | None = None
-    ):
+    def __init__(self, name: str, K, G, sample_time: float | None = None):
         super().__init__(name, sample_time)
 
-        # Store matrices with validation
         self.K = np.asarray(K, dtype=float)
         self.G = np.asarray(G, dtype=float)
+
+        if self.K.ndim != 2:
+            raise ValueError(f"[{self.name}] K must be a 2D array (m,n). Got shape {self.K.shape}.")
+        if self.G.ndim != 2:
+            raise ValueError(f"[{self.name}] G must be a 2D array (m,p). Got shape {self.G.shape}.")
 
         m, n = self.K.shape
         m2, p = self.G.shape
 
         if m != m2:
             raise ValueError(
-                f"Inconsistent dimensions: K is ({m},{n}), G is ({m2},{p})."
+                f"[{self.name}] Inconsistent dimensions: "
+                f"K is {self.K.shape} while G is {self.G.shape} (first dimension must match)."
             )
+
+        # cached expected sizes for input validation
+        self._m = m
+        self._n = n
+        self._p = p
 
         # Ports
         self.inputs["r"] = None
         self.inputs["x"] = None
         self.outputs["u"] = None
 
-        # No state
-        # (controller is static)
+        # freeze input shapes once seen (optional but consistent)
+        self._input_shapes = {}
 
-    # ---------------------------------------------------------
-    # INITIALIZATION
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------------
+    def _require_col_vector(self, port: str, expected_rows: int) -> np.ndarray:
+        u = self.inputs[port]
+        if u is None:
+            raise RuntimeError(f"[{self.name}] Input '{port}' is not connected or not set.")
+
+        arr = np.asarray(u, dtype=float)
+
+        if arr.ndim != 2 or arr.shape[1] != 1:
+            raise ValueError(
+                f"[{self.name}] Input '{port}' must be a column vector (n,1). Got shape {arr.shape}."
+            )
+
+        if arr.shape[0] != expected_rows:
+            raise ValueError(
+                f"[{self.name}] Input '{port}' has wrong dimension: expected ({expected_rows},1), got {arr.shape}."
+            )
+
+        return arr
+
+    # ------------------------------------------------------------------
     def initialize(self, t0: float):
-        """
-        If inputs are available at initialization, compute u.
-        Otherwise, output remains None until first update.
-        """
         r = self.inputs["r"]
         x = self.inputs["x"]
-
         if r is None or x is None:
             self.outputs["u"] = None
             return
 
-        r = np.asarray(r).reshape(-1, 1)
-        x = np.asarray(x).reshape(-1, 1)
+        r = self._require_col_vector("r", self._p)
+        x = self._require_col_vector("x", self._n)
 
         self.outputs["u"] = self.G @ r - self.K @ x
 
-    # ---------------------------------------------------------
-    # PHASE 1: OUTPUT UPDATE
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float):
-        """
-        Compute u = G*r - K*x
-        """
-        r = self.inputs["r"]
-        x = self.inputs["x"]
-
-        if r is None:
-            raise RuntimeError(f"[{self.name}] Input 'r' is not connected or set.")
-        if x is None:
-            raise RuntimeError(f"[{self.name}] Input 'x' is not connected or set.")
-
-        r = np.asarray(r).reshape(-1, 1)
-        x = np.asarray(x).reshape(-1, 1)
+        r = self._require_col_vector("r", self._p)
+        x = self._require_col_vector("x", self._n)
 
         self.outputs["u"] = self.G @ r - self.K @ x
 
-    # ---------------------------------------------------------
-    # PHASE 2: STATE UPDATE
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float):
-        """
-        Static controller : no internal state.
-        """
+        pass

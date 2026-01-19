@@ -95,7 +95,7 @@ def test_delay_dimension_mismatch_initial_output_non_scalar_vs_input():
     sim_cfg = SimulationConfig(0.1, 0.2, logging=["D.outputs.out"])
     sim = Simulator(m, sim_cfg)
 
-    with pytest.raises(ValueError) as err:
+    with pytest.raises(RuntimeError) as err:
         sim.run()
 
     assert "shape" in str(err.value) and "expected" in str(err.value)
@@ -157,7 +157,7 @@ def test_delay_input_shape_change_over_time_raises():
 
     d.initialize(0.0)
     d.inputs["in"] = np.array([[1.0]])  # scalar input
-    d.output_update(0.0, 0.1)
+    d.state_update(0.0, 0.1)
     d.inputs["in"] = np.array([[1.0, 2.0],  # shape change to (2,2)
                              [3.0, 4.0]])
     with pytest.raises(ValueError) as err:

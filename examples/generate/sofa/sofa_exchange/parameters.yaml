@@ -17,21 +17,26 @@ blocks:
       - -10.0
       - 50.0
       PID.Kp:
-      - 0.0
-      - 20.0
+      - 0.01
+      - 3.0
       PID.Ki:
-      - 0.0
-      - 20.0
+      - 0.01
+      - 3.0
+      PID.Kd:
+      - 0.001
+      - 0.01
   ref:
     value: [[1.0]]
   PID:
-    controller: PI
+    controller: PID
     Kp: [[0.5]]
     Ki: [[0.8]]
-    Kd: 0.0
+    Kd: [[0.005]]
     integration_method: euler forward
 logging:
 - sofa.outputs.measure
+- ref.outputs.out
+- PID.outputs.u
 plots:
 - title: Outputs
   signals:
