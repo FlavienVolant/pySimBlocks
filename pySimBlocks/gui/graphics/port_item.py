@@ -2,12 +2,16 @@ from PySide6.QtWidgets import  QGraphicsEllipseItem, QGraphicsTextItem, QGraphic
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor, QPen, QFont
 
-
+from pySimBlocks.gui.graphics.connection_item import ConnectionItem
+from pySimBlocks.gui.model.port_instance import PortInstance
 
 class PortItem(QGraphicsEllipseItem):
     R = 6
 
-    def __init__(self, instance, parent_block):
+    def __init__(self, 
+                instance: PortInstance, 
+                parent_block, # BlockItem, can't import type due to circular import
+    ):
         super().__init__(
             -self.R, -self.R, 2 * self.R, 2 * self.R, parent_block
         )
@@ -15,7 +19,7 @@ class PortItem(QGraphicsEllipseItem):
         self.instance = instance
         self.parent_block = parent_block
         self.block = parent_block
-        self.connections = []
+        self.connections: list[ConnectionItem] = []
 
         self.setBrush(QBrush(QColor("white")))
         self.setPen(QPen(Qt.black, 1))
@@ -51,7 +55,7 @@ class PortItem(QGraphicsEllipseItem):
             view.finish_connection(self)
         event.accept()
 
-    def is_compatible(self, other):
+    def is_compatible(self, other: 'PortItem'):
         return self.instance.direction != other.instance.direction
 
     def can_accept_connection(self) -> bool:
@@ -59,7 +63,7 @@ class PortItem(QGraphicsEllipseItem):
             return len(self.connections) == 0
         return True
 
-    def add_connection(self, conn):
+    def add_connection(self, conn: ConnectionItem):
         self.connections.append(conn)
 
     def itemChange(self, change, value):

@@ -22,7 +22,7 @@ class BlockItem(QGraphicsRectItem):
         self.setFlag(QGraphicsRectItem.ItemSendsScenePositionChanges)
 
         # Ports
-        self.port_items = []
+        self.port_items: list[PortItem] = []
         self.instance.resolve_ports()
         for port in self.instance.ports:
             item = PortItem(port, self)

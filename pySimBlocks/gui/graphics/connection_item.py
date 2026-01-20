@@ -2,9 +2,13 @@ from PySide6.QtWidgets import QGraphicsItem, QGraphicsPathItem
 from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QPen, QPainterPath
 
+from pySimBlocks.gui.model.connection_instance import ConnectionInstance
 
 class ConnectionItem(QGraphicsPathItem):
-    def __init__(self, port1, port2, instance):
+    def __init__(self, 
+                 port1, # PortItem, circular import
+                 port2, # PortItem, circular import
+                 instance: ConnectionInstance):
         super().__init__()
         self.setFlag(QGraphicsItem.ItemIsSelectable)
 

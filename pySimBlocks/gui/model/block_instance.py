@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal, Sized
 from pySimBlocks.gui.model.port_instance import PortInstance
 from pySimBlocks.tools.blocks_registry import BlockMeta
 
@@ -14,14 +14,14 @@ class BlockInstance:
     """
 
     def __init__(self, meta: BlockMeta):
-        self.uid = uuid.uuid4().hex
-        self.meta = meta
+        self.uid: str = uuid.uuid4().hex
+        self.meta: BlockMeta = meta
         self.name: str = meta.name
         self.parameters: Dict[str, Any] = self._init_parameters()
         self.ports: List[PortInstance] = []
         self.ui_cache: Dict[str, Any] = {}
 
-    def _init_parameters(self) -> dict:
+    def _init_parameters(self) -> dict[str, Any]:
         """
         Initialize instance parameters from metadata.
         """
@@ -36,14 +36,14 @@ class BlockInstance:
         return params
 
     def resolve_ports(self) -> None:
-        ports = []
+        ports: List[PortInstance] = []
 
         for direction in ("input", "output"):
             for pmeta in self.meta.ports[f"{direction}s"]:
                 ports.extend(self._resolve_port_group(pmeta, direction))
         self.ports = ports
 
-    def _resolve_port_group(self, pmeta, direction) -> list[PortInstance]:
+    def _resolve_port_group(self, pmeta: Dict[str, Dict[str, Any]], direction: Literal['input', 'output']) -> list[PortInstance]:
         if not pmeta["dynamic"]:
             return [PortInstance(pmeta["pattern"], direction, self, pmeta)]
 
@@ -62,9 +62,15 @@ class BlockInstance:
 
         return []
 
-    def _expand_ports(self, pattern, value, direction, meta) -> list[PortInstance]:
-        ports = []
-        operation = meta["source"].get("operation", "")
+    def _expand_ports(self, 
+            pattern: str, 
+            value: Sized, 
+            direction: Literal['input', 'output'], 
+            meta: Dict[str, Dict[str, str]]
+    ) -> list[PortInstance]:
+        
+        ports: List[PortInstance] = []
+        operation: str = meta["source"].get("operation", "")
 
         if operation == "len":
             for i in range(1, len(value) + 1):

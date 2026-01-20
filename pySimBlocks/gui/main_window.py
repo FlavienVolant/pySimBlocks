@@ -8,15 +8,14 @@ from PySide6.QtWidgets import (
 )
 
 from pySimBlocks.gui.services.project_controller import ProjectController
-from pySimBlocks.tools.blocks_registry import load_block_registry, BlockMeta
+from pySimBlocks.tools.blocks_registry import BlockRegistry, load_block_registry, BlockMeta
 from pySimBlocks.gui.widgets.block_list import BlockList
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 from pySimBlocks.gui.widgets.toolbar_view import ToolBarView
 from pySimBlocks.gui.model.project_state import ProjectState
 
 
-registry = load_block_registry()
-
+registry: BlockRegistry = load_block_registry()
 
 class MainWindow(QMainWindow):
     def __init__(self, project_path: Path):
@@ -55,7 +54,7 @@ class MainWindow(QMainWindow):
     def get_blocks(self, category: str) -> List[str]:
         return sorted(registry[category].keys()) 
 
-    def resolve_category_meta(self, category) -> Dict[str, BlockMeta]:
+    def resolve_category_meta(self, category: str) -> Dict[str, BlockMeta]:
         return registry[category]
 
     def resolve_block_meta(self, category: str, block_type: str) -> BlockMeta:
