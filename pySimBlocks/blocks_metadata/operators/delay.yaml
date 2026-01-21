@@ -36,6 +36,14 @@ ports:
       shape: [n, m]
       description: Input signal.
 
+    - name: reset
+      dynamic: false
+      pattern: reset
+      source:
+        type: fixed
+      shape: []
+      description: Reset signal (0/1). When high (1), the delay state is reset to the initial output value.
+
   outputs:
     - name: out
       dynamic: false

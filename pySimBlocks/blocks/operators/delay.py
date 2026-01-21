@@ -25,6 +25,7 @@ class Delay(Block):
     I/O:
         Inputs:
             in : Input signal (must be 2D).
+            reset: Optional reset signal.
         Outputs:
             out : Delayed output signal (2D).
 
@@ -61,6 +62,7 @@ class Delay(Block):
         self.num_delays = num_delays
 
         self.inputs["in"] = None
+        self.inputs["reset"] = None 
         self.outputs["out"] = None
 
         self.state["buffer"] = None
@@ -71,6 +73,7 @@ class Delay(Block):
         self._buffer_shape: tuple[int, int] | None = None
 
         # Initialize buffer as (1,1) by default, but NOT fixed yet.
+        self._initial_output = initial_output
         init = np.zeros((1, 1), dtype=float)
 
         if initial_output is not None:
@@ -137,6 +140,41 @@ class Delay(Block):
         self._buffer_shape = target_shape
 
     # ------------------------------------------------------------------
+    def _is_reset_active(self) -> bool:
+        reset_signal = self.inputs.get("reset", None)
+        if reset_signal is None:
+            return False
+        reset_arr = np.asarray(reset_signal)
+        if reset_arr.ndim == 0:
+            return bool(reset_arr)
+        elif reset_arr.ndim == 1 and reset_arr.size == 1:
+            return bool(reset_arr[0])
+        elif reset_arr.ndim == 2 and reset_arr.shape == (1, 1):
+            return bool(reset_arr[0, 0])
+        else:
+            raise ValueError(
+                f"[{self.name}] Reset signal must be a scalar or single-element array. Got shape {reset_arr.shape}."
+            )
+
+    def _apply_reset(self) -> None:
+        if self._initial_output is not None:
+            arr = self._to_2d_array("initial_output", self._initial_output)
+            init = arr.astype(float, copy=False)
+            if self._shape_fixed and self._buffer_shape is not None:
+                if self._is_scalar_2d(init) and self._buffer_shape != (1, 1):
+                    scalar = float(init[0, 0])
+                    init = np.full(self._buffer_shape, scalar, dtype=float)
+
+        elif self._shape_fixed and self._buffer_shape is not None:
+            init = np.zeros(self._buffer_shape, dtype=float)
+
+        else:
+            init = np.zeros((1, 1), dtype=float)
+
+        self.state["buffer"] = [init.copy() for _ in range(self.num_delays)]
+        self.next_state["buffer"] = [init.copy() for _ in range(self.num_delays)]
+
+    # ------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
         # Output always defined from buffer (important for loops)
         self.outputs["out"] = self.state["buffer"][0].copy()
@@ -149,11 +187,20 @@ class Delay(Block):
 
     # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
-        # Output does not require current input; it is purely delayed state.
+        if not self._shape_fixed:
+            u = self.inputs["in"]
+            if u is not None:
+                u_arr = np.asarray(u, dtype=float)
+                self._ensure_shape_and_buffer(u_arr)
+
         self.outputs["out"] = self.state["buffer"][0].copy()
 
     # ------------------------------------------------------------------
     def state_update(self, t: float, dt: float) -> None:
+        if self._is_reset_active():
+            self._apply_reset()
+            return
+
         u = self.inputs["in"]
         if u is None:
             raise RuntimeError(f"[{self.name}] Input 'in' is not connected or not set.")

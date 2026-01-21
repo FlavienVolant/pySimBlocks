@@ -5,6 +5,10 @@
 The **Delay** block outputs a delayed version of its input signal by a fixed
 number of discrete simulation steps.
 
+The block can be reset to an initial output value via an optional reset input.
+This reset is a level-triggered signal: when the reset input is true (non-zero), the delay buffer is reset to the initial output value.
+It is not a rising-edge or falling-edge trigger.
+
 ---
 
 ## Mathematical definition
@@ -36,6 +40,7 @@ where:
 | Port | Description |
 |------|------------|
 | `in` | Input signal to be delayed. |
+| `reset` | Optional reset signal. When true (non-zero), the delay buffer is reset to the initial output value. |
 
 ---
 

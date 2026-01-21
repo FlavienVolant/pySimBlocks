@@ -73,6 +73,10 @@ class Gain(Block):
         if u is None:
             self.outputs["out"] = None
             return
+        if u.ndim == 1 and u.shape[0] == 1:
+            u = u.reshape(1, 1)
+        if u.ndim == 2 and u.shape == (1, 1) and not self._gain_kind == "scalar":
+            u = np.full((self.gain.shape[0], 1), u[0, 0], dtype=float)
         self.outputs["out"] = self._compute(u)
 
     # ------------------------------------------------------------------
