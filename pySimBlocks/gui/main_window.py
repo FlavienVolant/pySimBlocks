@@ -4,27 +4,25 @@ import shutil
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
-    QHBoxLayout,
+    QSplitter
 )
 
+from PySide6.QtCore import Qt
+
 from pySimBlocks.gui.services.project_controller import ProjectController
-from pySimBlocks.tools.blocks_registry import load_block_registry, BlockMeta
+from pySimBlocks.tools.blocks_registry import BlockRegistry, load_block_registry, BlockMeta
 from pySimBlocks.gui.widgets.block_list import BlockList
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 from pySimBlocks.gui.widgets.toolbar_view import ToolBarView
 from pySimBlocks.gui.model.project_state import ProjectState
 
 
-registry = load_block_registry()
-
+registry: BlockRegistry = load_block_registry()
 
 class MainWindow(QMainWindow):
     def __init__(self, project_path: Path):
         super().__init__()
         self.setWindowTitle("pySimBlocks — Qt Edition")
-
-        central = QWidget()
-        layout = QHBoxLayout(central)
 
         self.project_state = ProjectState(project_path)
         self.diagram = DiagramView(self.resolve_block_meta, self.project_state)
@@ -32,12 +30,14 @@ class MainWindow(QMainWindow):
         self.blocks = BlockList(self.get_categories, self.get_blocks, self.resolve_block_meta)
         self.toolbar = ToolBarView(self.project_state, self.project_controller)
 
-        self.blocks.setFixedWidth(220)
-
-        layout.addWidget(self.blocks)
-        layout.addWidget(self.diagram)
+        splitter = QSplitter(Qt.Horizontal)
+        splitter.addWidget(self.blocks)
+        splitter.addWidget(self.diagram)
+        splitter.setSizes([180, 800])
+        
+        self.setCentralWidget(splitter)
         self.addToolBar(self.toolbar)
-        self.setCentralWidget(central)
+
         flag = self.auto_load_detection(project_path)
         if flag:
             self.project_controller.load_project(project_path)
@@ -55,7 +55,7 @@ class MainWindow(QMainWindow):
     def get_blocks(self, category: str) -> List[str]:
         return sorted(registry[category].keys()) 
 
-    def resolve_category_meta(self, category) -> Dict[str, BlockMeta]:
+    def resolve_category_meta(self, category: str) -> Dict[str, BlockMeta]:
         return registry[category]
 
     def resolve_block_meta(self, category: str, block_type: str) -> BlockMeta:

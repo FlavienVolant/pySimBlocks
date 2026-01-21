@@ -1,24 +1,30 @@
+from typing import Callable
 from PySide6.QtWidgets import QGraphicsView, QGraphicsScene
 from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QPainter
 
 from pySimBlocks.gui.graphics.block_item import BlockItem
 from pySimBlocks.gui.graphics.connection_item import ConnectionItem
+from pySimBlocks.gui.graphics.port_item import PortItem
 from pySimBlocks.gui.model.block_instance import BlockInstance
 from pySimBlocks.gui.model.connection_instance import ConnectionInstance
 from pySimBlocks.gui.model.project_state import ProjectState
+from pySimBlocks.tools.blocks_registry import BlockMeta
 
 
 
 class DiagramView(QGraphicsView):
-    def __init__(self, resolve_block_meta, project_state:ProjectState):
+    def __init__(self, 
+                 resolve_block_meta: Callable[[str, str], BlockMeta], 
+                 project_state:ProjectState
+    ):
         super().__init__()
         self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
         self.setAcceptDrops(True)
         self.setRenderHint(QPainter.Antialiasing)
 
-        self.pending_port = None
+        self.pending_port: PortItem | None = None
         self.copied_block = None
         self.resolve_block_meta = resolve_block_meta
         self.project_state = project_state
@@ -52,11 +58,11 @@ class DiagramView(QGraphicsView):
         event.acceptProposedAction()
 
 
-    def start_connection(self, port):
+    def start_connection(self, port: PortItem):
         self.pending_port = port
 
 
-    def finish_connection(self, port):
+    def finish_connection(self, port: PortItem):
         if self.pending_port is None:
             return
 

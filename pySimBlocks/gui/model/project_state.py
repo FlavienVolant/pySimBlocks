@@ -2,12 +2,13 @@ from pathlib import Path
 
 from pySimBlocks.gui.model.block_instance import BlockInstance
 from pySimBlocks.gui.model.connection_instance import ConnectionInstance
+from pySimBlocks.gui.model.project_simulation_params import ProjectSimulationParams
 
 class ProjectState:
     def __init__(self, directory_path: Path):
         self.blocks: list[BlockInstance] = []
         self.connections: list[ConnectionInstance] = []
-        self.simulation = {"dt": 0.1, "solver": "fixed", "T": 10.}
+        self.simulation = ProjectSimulationParams()
         self.external: str | None = None
         self.directory_path = directory_path
         self.logging: list = []
@@ -23,14 +24,16 @@ class ProjectState:
         self.logging.clear()
         self.plots.clear()
 
-        # simulation settings → on garde les defaults
-        self.simulation = {
-            "dt": self.simulation.get("dt", 0.01),
-            "solver": self.simulation.get("solver", "fixed"),
-            "T": self.simulation.get("T", 10.0),
-        }
+        self.simulation.clear()
 
         self.external = None
+
+    def load_simulation(self, sim_data: dict, external):
+        self.simulation.load_from_dict(sim_data)
+
+        if external:
+            self.external = external
+
 
     # -------------------------
     # Block management
@@ -40,21 +43,21 @@ class ProjectState:
             if name == block.name:
                 return block
 
-    def add_block(self, instance):
-        instance.name = self.make_unique_name(instance.name)
-        self.blocks.append(instance)
+    def add_block(self, block_instance: BlockInstance):
+        block_instance.name = self.make_unique_name(block_instance.name)
+        self.blocks.append(block_instance)
 
-    def remove_block(self, block: BlockInstance):
-        if block in self.blocks:
+    def remove_block(self, block_instance: BlockInstance):
+        if block_instance in self.blocks:
             # remove connections
             self.connections = [
                 c for c in self.connections
-                if c.src_block is not block and c.dst_block is not block
+                if c.src_block is not block_instance and c.dst_block is not block_instance
             ]
             # delete all outputs signal from logging
             removed_signals = [
-                f"{block.name}.outputs.{p.name}"
-                for p in block.ports if p.direction == "output"
+                f"{block_instance.name}.outputs.{p.name}"
+                for p in block_instance.ports if p.direction == "output"
             ]
             self.logging = [
                 s for s in self.logging
@@ -71,7 +74,7 @@ class ProjectState:
                     new_plots.append(plot)
             self.plots = new_plots
             # remove block
-            self.blocks.remove(block)
+            self.blocks.remove(block_instance)
 
     # -------------------------
     # Connection management

@@ -1,9 +1,11 @@
+from typing import Callable
 from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem
 from PySide6.QtCore import Qt, QMimeData
 from PySide6.QtGui import QDrag
 
 from pySimBlocks.gui.dialogs.block_dialog import BlockDialog
 from pySimBlocks.gui.model.block_instance import BlockInstance
+from pySimBlocks.tools.blocks_registry import BlockMeta
 
 class _PreviewBlock:
     def __init__(self, instance):
@@ -13,7 +15,10 @@ class _PreviewBlock:
         pass
 
 class BlockList(QTreeWidget):
-    def __init__(self, get_categories, get_blocks, resolve_block_meta):
+    def __init__(self,
+                 get_categories: Callable[[], list[str]],
+                 get_blocks: Callable[[str], list[str]],
+                 resolve_block_meta: Callable[[str, str], BlockMeta]):
         super().__init__()
         self.setHeaderHidden(True)
         self.setDragEnabled(True)

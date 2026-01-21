@@ -1,5 +1,5 @@
-from PySide6.QtWidgets import QGraphicsRectItem, QGraphicsItem, QStyle
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QGraphicsRectItem, QGraphicsView, QGraphicsItem, QStyle
+from PySide6.QtCore import Qt, QPointF, QPoint
 from PySide6.QtGui import QColor, QPen
 
 from pySimBlocks.gui.dialogs.block_dialog import BlockDialog
@@ -11,7 +11,11 @@ class BlockItem(QGraphicsRectItem):
     WIDTH = 120
     HEIGHT = 60
 
-    def __init__(self, instance: BlockInstance, pos, view):
+    def __init__(self, 
+                 instance: BlockInstance, 
+                 pos: QPointF | QPoint, 
+                 view: QGraphicsView
+    ):
         super().__init__(0, 0, self.WIDTH, self.HEIGHT)
         self.view = view
         self.instance = instance
@@ -22,7 +26,7 @@ class BlockItem(QGraphicsRectItem):
         self.setFlag(QGraphicsRectItem.ItemSendsScenePositionChanges)
 
         # Ports
-        self.port_items = []
+        self.port_items: list[PortItem] = []
         self.instance.resolve_ports()
         for port in self.instance.ports:
             item = PortItem(port, self)

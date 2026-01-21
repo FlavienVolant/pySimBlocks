@@ -11,13 +11,15 @@ from pySimBlocks.gui.model import BlockInstance, ConnectionInstance, ProjectStat
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 from pySimBlocks.gui.services.yaml_tools import save_yaml, load_yaml_file
 from pySimBlocks.project.generate_run_script import generate_python_content
+from pySimBlocks.tools.blocks_registry import BlockMeta
 
 
 class ProjectController:
     def __init__(self, 
                  project_state: ProjectState,
                  view: DiagramView,
-                 resolve_block_meta: Callable):
+                 resolve_block_meta: Callable[[str, str], BlockMeta]
+    ):
         self.project_state = project_state
         self.resolve_block_meta = resolve_block_meta
         self.view = view
@@ -115,17 +117,9 @@ class ProjectController:
         self._instantiate_blocks_in_view()
         self._instantiate_connections_in_view()
 
-    def _load_simulation(self, params_data):
-        sim_data = params_data.get("simulation", {})
-        if "dt" not in sim_data:
-            sim_data["dt"] = self.project_state.simulation["dt"]
-        if "solver" not in sim_data:
-            sim_data["solver"] = self.project_state.simulation["solver"]
-        if "T" not in sim_data:
-            sim_data["T"] = self.project_state.simulation["T"]
-        self.project_state.simulation = sim_data
-        if "external" in params_data:
-            self.project_state.external = params_data["external"]
+    def _load_simulation(self, params_data: dict):
+        sim_data: dict = params_data.get("simulation", {})
+        self.project_state.load_simulation(sim_data, params_data.get("external", None))
 
     def _load_blocks(self, model_data, params_data):
         blocks = model_data.get("blocks", [])
