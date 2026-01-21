@@ -56,6 +56,9 @@ class AlgebraicFunction(Block):
         if len(self.output_keys) == 0:
             raise ValueError(f"[{self.name}] output_keys cannot be empty.")
 
+        self.inputs: Dict[str, np.ndarray | None] = {k: None for k in self.input_keys}
+        self.outputs: Dict[str, np.ndarray | None] = {k: None for k in self.output_keys}
+
         # Shape freeze per port
         self._in_shapes: Dict[str, tuple[int, int] | None] = {k: None for k in self.input_keys}
         self._out_shapes: Dict[str, tuple[int, int] | None] = {k: None for k in self.output_keys}
@@ -64,12 +67,17 @@ class AlgebraicFunction(Block):
     def initialize(self, t0: float):
         self._validate_signature()
 
-        # declare ports
-        for k in self.input_keys:
-            self.inputs[k] = None
+        out = self._func(t0, 0, **self.inputs)
+        if not isinstance(out, dict):
+            raise RuntimeError(f"[{self.name}] function must return a dict.")
 
+        if set(out.keys()) != set(self.output_keys):
+            raise RuntimeError(
+                f"[{self.name}] output keys mismatch "
+                f"(expected {self.output_keys}, got {list(out.keys())})."
+            )
         for k in self.output_keys:
-            self.outputs[k] = None
+            self.outputs[k] = out[k]
 
     # ------------------------------------------------------------------
     def _validate_signature(self) -> None:
@@ -86,9 +94,7 @@ class AlgebraicFunction(Block):
         for p in params:
             if p.kind not in (inspect.Parameter.POSITIONAL_OR_KEYWORD,):
                 raise ValueError(f"[{self.name}] *args and **kwargs are not allowed.")
-            if p.default is not inspect.Parameter.empty:
-                raise ValueError(f"[{self.name}] default arguments are not allowed.")
-
+            
         declared = [p.name for p in params[2:]]
         if set(declared) != set(self.input_keys):
             raise ValueError(
@@ -131,9 +137,10 @@ class AlgebraicFunction(Block):
         if not isinstance(out, dict):
             raise RuntimeError(f"[{self.name}] function must return a dict.")
 
-        if set(out.keys()) != set(self.output_keys):
+        # Ici on verifie juste que les clés de sorties sont dans la sortie (mais certaines peuvent etre non utilisées)
+        if not set(self.output_keys).issubset(out.keys()):
             raise RuntimeError(
-                f"[{self.name}] output keys mismatch "
+                f"[{self.name}] missing output keys "
                 f"(expected {self.output_keys}, got {list(out.keys())})."
             )
 

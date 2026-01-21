@@ -8,6 +8,10 @@ function at each simulation step.
 It implements an algebraic mapping between input and output signals, possibly
 depending on the current simulation time.
 
+The python function that defines the algebraic relation must always return:
+- A dictionary containing the output signals, with keys matching the `output_keys` parameter.
+- It should always work and return outputs of the correct shape when called with any inputs.
+
 ---
 
 ## Mathematical definition
