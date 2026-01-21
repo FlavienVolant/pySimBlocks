@@ -15,15 +15,15 @@ class SimulationSettingsWidget(QWidget):
         layout = QFormLayout(self)
         layout.addRow(QLabel("<b>Simulation Settings</b>"))
 
-        self.dt_edit = QLineEdit(str(project_state.simulation.get("dt", 0.01)))
+        self.dt_edit = QLineEdit(str(project_state.simulation.dt))
         layout.addRow("Step time:", self.dt_edit)
 
         self.solver_combo = QComboBox()
         self.solver_combo.addItems(["fixed", "variable"])
-        self.solver_combo.setCurrentText(project_state.simulation.get("solver", "fixed"))
+        self.solver_combo.setCurrentText(project_state.simulation.solver)
         layout.addRow("Solver:", self.solver_combo)
 
-        self.T_edit = QLineEdit(str(project_state.simulation.get("T", 10.0)))
+        self.T_edit = QLineEdit(str(project_state.simulation.T))
         layout.addRow("Stop time:", self.T_edit)
 
         # -------- Logs --------
@@ -34,16 +34,16 @@ class SimulationSettingsWidget(QWidget):
 
     def apply(self):
         try:
-            self.project_state.simulation["dt"] = float(self.dt_edit.text())
+            self.project_state.simulation.dt = float(self.dt_edit.text())
         except ValueError:
-            self.project_state.simulation["dt"] = self.dt_edit.text()
+            self.project_state.simulation.dt = self.dt_edit.text()
 
         try:
-            self.project_state.simulation["T"] = float(self.T_edit.text())
+            self.project_state.simulation.T = float(self.T_edit.text())
         except ValueError:
-            self.project_state.simulation["T"] = self.T_edit.text()
+            self.project_state.simulation.T = self.T_edit.text()
 
-        self.project_state.simulation["solver"] = self.solver_combo.currentText()
+        self.project_state.simulation.solver = self.solver_combo.currentText()
 
         self.project_state.logging = [
             self.logs_list.item(i).text()

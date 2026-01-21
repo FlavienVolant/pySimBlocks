@@ -117,17 +117,9 @@ class ProjectController:
         self._instantiate_blocks_in_view()
         self._instantiate_connections_in_view()
 
-    def _load_simulation(self, params_data):
-        sim_data = params_data.get("simulation", {})
-        if "dt" not in sim_data:
-            sim_data["dt"] = self.project_state.simulation["dt"]
-        if "solver" not in sim_data:
-            sim_data["solver"] = self.project_state.simulation["solver"]
-        if "T" not in sim_data:
-            sim_data["T"] = self.project_state.simulation["T"]
-        self.project_state.simulation = sim_data
-        if "external" in params_data:
-            self.project_state.external = params_data["external"]
+    def _load_simulation(self, params_data: dict):
+        sim_data: dict = params_data.get("simulation", {})
+        self.project_state.load_simulation(sim_data, params_data.get("external", None))
 
     def _load_blocks(self, model_data, params_data):
         blocks = model_data.get("blocks", [])
