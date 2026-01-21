@@ -121,7 +121,7 @@ class Gain(Block):
 
         if self._gain_kind == "vector":
             g = self.gain  # shape (m,)
-            if if g.shape[0] != 1 and u.shape[0] != g.shape[0]:
+            if g.shape[0] != 1 and u.shape[0] != g.shape[0]:
                 raise ValueError(
                     f"[{self.name}] Element-wise mode requires u.shape[0] == len(gain). "
                     f"Got u.shape={u.shape}, gain.shape={g.shape}."
