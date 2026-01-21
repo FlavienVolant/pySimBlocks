@@ -11,13 +11,15 @@ from pySimBlocks.gui.model import BlockInstance, ConnectionInstance, ProjectStat
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 from pySimBlocks.gui.services.yaml_tools import save_yaml, load_yaml_file
 from pySimBlocks.project.generate_run_script import generate_python_content
+from pySimBlocks.tools.blocks_registry import BlockMeta
 
 
 class ProjectController:
     def __init__(self, 
                  project_state: ProjectState,
                  view: DiagramView,
-                 resolve_block_meta: Callable):
+                 resolve_block_meta: Callable[[str, str], BlockMeta]
+    ):
         self.project_state = project_state
         self.resolve_block_meta = resolve_block_meta
         self.view = view
