@@ -30,7 +30,7 @@ pysimblocks
 
 ## Information
 
-### Licenses
+### License
 pySimblocks is LGPL.
 
 LGPL refers to the GNU Lesser General Public License as published by the Free Software
