@@ -1,0 +1,14 @@
+******************************************************************************
+                                 pySimBlocks                                 
+                Copyright (c) 2026 The pySimBlocks Authors   
+
+                                 CONTRIBUTORS                                
+******************************************************************************
+
+Lead developer and maintainer:
+------------------------------
+Antoine Alessandrini
+
+Contributors:
+-------------
+Flavien Volant
