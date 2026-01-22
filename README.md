@@ -6,13 +6,16 @@ pySimBlocks is a lightweight and extensible environment for building, configurin
 
 ## Installation
 
-### From GitHub
+### From GitHub
+
+Install directly from GitHub using pip:
 ```
 pip install git+https://github.com/AlessandriniAntoine/pySimBlocks
 ```
 
-### Locally
-Clone the repository and install locally
+### Locally
+
+Clone the repository and install locally:
 ```
 git clone https://github.com/AlessandriniAntoine/pySimBlocks.git
 cd pySimBlocks
@@ -20,6 +23,7 @@ pip install .
 ```
 
 ## Run GUI application
+
 ```
 pysimblocks
 ```
