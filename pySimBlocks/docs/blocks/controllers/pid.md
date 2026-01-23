@@ -73,4 +73,6 @@ $$
 - Dimension checks are enforced at runtime.
 - Direct feedthrough depends on the controller structure and integration method.
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

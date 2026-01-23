@@ -82,4 +82,6 @@ where:
     + After shape is frozen, any non-scalar input shape mismatch raises ValueError.
     + If shape is frozen to (m,n), scalar input (1,1) is broadcast to (m,n).
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

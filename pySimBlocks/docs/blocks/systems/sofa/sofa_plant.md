@@ -57,4 +57,6 @@ Outputs are ynamically defined by `output_keys`.
 - There is no direct feedthrough.
 - One SOFA simulation step is executed per block activation.
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

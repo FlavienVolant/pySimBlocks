@@ -55,4 +55,6 @@ where:
 - The control law is evaluated at each simulation step.
 - Both reference and state inputs must be connected.
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

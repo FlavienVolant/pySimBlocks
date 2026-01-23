@@ -57,4 +57,6 @@ where:
 - Absence of saturation is represented by infinite bounds.
 - This block is equivalent to the Simulink **Saturation** block.
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

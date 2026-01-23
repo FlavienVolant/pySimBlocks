@@ -71,4 +71,6 @@ where:
       broadcast ONCE to match the first input shape.
     + After shape is fixed, any shape mismatch raises.
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

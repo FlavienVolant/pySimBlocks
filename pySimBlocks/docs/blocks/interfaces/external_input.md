@@ -34,4 +34,6 @@ The External Input block represents a data input point in a simulation model. It
 
 - The External Input block is **stateless**.
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

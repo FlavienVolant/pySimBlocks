@@ -48,4 +48,6 @@ This block has **no inputs**.
 - The output value is copied at each simulation step.
 - This block is typically used as a reference or bias source.
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

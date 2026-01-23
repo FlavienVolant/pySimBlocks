@@ -1,8 +1,8 @@
 ******************************************************************************
-                                 pySimBlocks                                 
-                Copyright (c) 2026 The pySimBlocks Authors   
+                                 pySimBlocks
+                    Copyright (c) 2026 Antoine Alessandrini
 
-                                 CONTRIBUTORS                                
+                                 CONTRIBUTORS
 ******************************************************************************
 
 Lead developer and maintainer:
@@ -12,3 +12,7 @@ Antoine Alessandrini
 Contributors:
 -------------
 Flavien Volant
+
+
+******************************************************************************
+All contributions are made under the terms of the LGPL license.

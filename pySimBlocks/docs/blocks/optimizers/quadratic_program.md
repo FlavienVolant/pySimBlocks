@@ -93,4 +93,6 @@ This block is suitable for:
 - This block relies on the `qpsolvers` Python package for numerical optimization.
 - This block is conceptually similar to optimization blocks used in Simulink-based MPC and constrained control designs.
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

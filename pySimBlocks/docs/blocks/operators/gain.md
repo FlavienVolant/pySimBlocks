@@ -92,4 +92,6 @@ Right matrix product:
 - Dimension mismatches raise an error.
 - This block is conceptually similar to Simulink **Gain**, but the multiplication behavior is made explicit via `multiplication`.
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

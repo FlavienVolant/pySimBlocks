@@ -56,4 +56,6 @@ Between two sampling instants, the output remains constant.
   reaches the specified sampling period.
 - This block is equivalent to the Simulink **Zero-Order Hold** block.
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

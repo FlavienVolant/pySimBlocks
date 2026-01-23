@@ -36,3 +36,6 @@ pySimblocks is LGPL.
 LGPL refers to the GNU Lesser General Public License as published by the Free Software
 Foundation; either version 3.0 of the License, or (at your option) any later 
 version.
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

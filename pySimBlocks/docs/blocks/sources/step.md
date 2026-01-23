@@ -58,4 +58,6 @@ This block has **no inputs**.
   behavior on discrete time grids.
 - This block is typically used to generate reference signals.
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

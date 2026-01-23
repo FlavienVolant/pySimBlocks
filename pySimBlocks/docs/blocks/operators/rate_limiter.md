@@ -65,4 +65,6 @@ where:
 - Absence of a rate limit in one direction is represented by an infinite slope.
 - This block is equivalent to the Simulink **Rate Limiter** block.
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

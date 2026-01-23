@@ -58,4 +58,6 @@ Outputs are dynamically defined by `output_keys`.
 - The block has no internal state.
 - All data validation is performed at runtime.
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

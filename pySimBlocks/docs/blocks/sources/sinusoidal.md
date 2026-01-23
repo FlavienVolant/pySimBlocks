@@ -55,4 +55,6 @@ This block has **no inputs**.
 - Each output dimension may have its own frequency and phase.
 - Scalar parameters are automatically broadcast.
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later

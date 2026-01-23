@@ -56,4 +56,6 @@ where:
 - Input dimension changes between steps are not allowed.
 - This block matches Simulink **Derivative** behavior in discrete-time mode.
 
-© 2026 The pySimBlocks Authors – Licensed under LGPL-3.0-or-later
+
+---
+© 2026 Antoine Alessandrini – Licensed under LGPL-3.0-or-later
