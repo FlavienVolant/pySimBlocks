@@ -54,7 +54,6 @@ class ProjectState:
         if external:
             self.external = external
 
-
     # -------------------------
     # Block management
     # -------------------------
@@ -64,36 +63,10 @@ class ProjectState:
                 return block
 
     def add_block(self, block_instance: BlockInstance):
-        block_instance.name = self.make_unique_name(block_instance.name)
         self.blocks.append(block_instance)
 
     def remove_block(self, block_instance: BlockInstance):
         if block_instance in self.blocks:
-            # remove connections
-            self.connections = [
-                c for c in self.connections
-                if c.src_block is not block_instance and c.dst_block is not block_instance
-            ]
-            # delete all outputs signal from logging
-            removed_signals = [
-                f"{block_instance.name}.outputs.{p.name}"
-                for p in block_instance.ports if p.direction == "output"
-            ]
-            self.logging = [
-                s for s in self.logging
-                if s not in removed_signals
-            ]
-            # remove signals from plots and delete empty plot
-            new_plots = []
-            for plot in self.plots:
-                plot["signals"] = [
-                    s for s in plot["signals"]
-                    if s not in removed_signals
-                ]
-                if plot["signals"]:
-                    new_plots.append(plot)
-            self.plots = new_plots
-            # remove block
             self.blocks.remove(block_instance)
 
     # -------------------------
@@ -106,28 +79,8 @@ class ProjectState:
         if conn in self.connections:
             self.connections.remove(conn)
 
-    # -------------------------
-    # Naming
-    # -------------------------
-    def make_unique_name(self, base_name: str) -> str:
-        existing = {b.name for b in self.blocks}
-
-        if base_name not in existing:
-            return base_name
-
-        i = 1
-        while f"{base_name}_{i}" in existing:
-            i += 1
-
-        return f"{base_name}_{i}"
-
-    def is_name_available(self, name: str, current=None) -> bool:
-        for b in self.blocks:
-            if b is current:
-                continue
-            if b.name == name:
-                return False
-        return True
+    def get_connections_of_block(self, block_instance: BlockInstance) -> list[ConnectionInstance]:
+        return [c for c in self.connections if block_instance is c.src_block or block_instance is c.dst_block]
 
     # -------------------------
     # Signals

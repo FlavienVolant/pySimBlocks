@@ -77,6 +77,18 @@ class DiagramView(QGraphicsView):
         self.block_items[instance.uid] = block_item
         event.acceptProposedAction()
 
+    def add_block(self, block_instance: BlockInstance):
+        pass
+
+    def remove_block(self, block_instance: BlockInstance):
+        pass
+
+    def add_connecton(self, connection_instance: ConnectionInstance):
+        pass
+
+    def remove_connection(self, connection_instance: ConnectionInstance):
+        pass
+
 
     def start_connection(self, port: PortItem):
         self.pending_port = port

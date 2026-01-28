@@ -20,6 +20,8 @@
 
 from typing import Any, Dict, Literal
 
+from pySimBlocks.gui.model.connection_instance import ConnectionInstance
+
 class PortInstance:
     def __init__(
         self,
@@ -32,3 +34,16 @@ class PortInstance:
         self.direction = direction
         self.block = block
         self.meta = meta
+
+    def is_compatible(self, other: 'PortInstance'):
+        return self.direction != other.direction
+    
+    def can_accept_connection(self, connections: list[ConnectionInstance]) -> bool:
+        """
+        Check whether this port can accept a new connection.
+
+        The `connections` list is expected to contain all and only the connections
+        already linked to this PortInstance.
+        """
+        return self.direction == "output" or not connections
+
