@@ -19,7 +19,7 @@
 # ******************************************************************************
 
 import uuid
-from typing import Any, Dict, List, Literal, Sized
+from typing import Any, Callable, Dict, List, Literal, Sized
 from pySimBlocks.gui.model.port_instance import PortInstance
 from pySimBlocks.tools.blocks_registry import BlockMeta
 
@@ -54,6 +54,18 @@ class BlockInstance:
                 params[pname] = None
 
         return params
+
+    def serialize(self) -> dict:
+        return {
+            "uid": self.uid,
+            "name": self.name,
+            "meta": {
+                "category": self.meta.category,
+                "type": self.meta.type,
+            },
+            "parameters": {k: v for k, v in self.parameters.items() if v is not None},
+            "ports": [p.serialize() for p in self.ports],
+        }
 
     def resolve_ports(self) -> None:
         ports: List[PortInstance] = []

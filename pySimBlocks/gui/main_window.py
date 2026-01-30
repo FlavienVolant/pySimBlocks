@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from pySimBlocks.gui.services.project_controller import ProjectController
+from pySimBlocks.gui.services.project_loader import ProjectLoaderYaml
 from pySimBlocks.gui.services.project_saver import ProjectSaverYaml
 from pySimBlocks.tools.blocks_registry import BlockRegistry, load_block_registry, BlockMeta
 from pySimBlocks.gui.widgets.block_list import BlockList
@@ -50,7 +51,7 @@ class MainWindow(QMainWindow):
         self.project_controller = ProjectController(self.project_state, self.view, self.resolve_block_meta)
         self.view.project_controller = self.project_controller
         self.blocks = BlockList(self.get_categories, self.get_blocks, self.resolve_block_meta)
-        self.toolbar = ToolBarView(ProjectSaverYaml().project_state, self.view)
+        self.toolbar = ToolBarView(ProjectSaverYaml(), self.project_state, self.view)
 
         splitter = QSplitter(Qt.Horizontal)
         splitter.addWidget(self.blocks)
@@ -62,7 +63,8 @@ class MainWindow(QMainWindow):
 
         flag = self.auto_load_detection(project_path)
         if flag:
-            self.project_controller.load_project(project_path)
+            loader = ProjectLoaderYaml()
+            loader.load(self.project_controller, project_path)
 
     def cleanup(self):
         temp_path = self.project_state.directory_path / ".temp"

@@ -95,7 +95,7 @@ class DiagramView(QGraphicsView):
             self.pending_port = port
             return
         
-        self.project_controller.add_connecton(self.pending_port.instance, port.instance)
+        self.project_controller.add_connection(self.pending_port.instance, port.instance)
         self.pending_port = None
 
     def on_block_moved(self, block_item: BlockItem):

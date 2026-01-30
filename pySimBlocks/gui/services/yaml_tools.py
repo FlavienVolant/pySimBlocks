@@ -150,32 +150,17 @@ def save_yaml(
         project_state: ProjectState, 
         block_items: dict[str, BlockItem] | None = None, 
         temp: bool = False) -> None:
+    
     directory = project_state.directory_path
-    params_yaml = build_parameters_yaml(project_state)
-    model_yaml = build_model_yaml(project_state)
-
     if temp:
-        temp_dir = directory / ".temp"
-        if "external" in params_yaml:
-            external_abs = directory / params_yaml["external"]
-            external_temp = os.path.relpath(external_abs, temp_dir)
-            params_yaml["external"] = external_temp
-        directory = temp_dir
-
+        directory = directory / ".temp"
     directory.mkdir(parents=True, exist_ok=True)
-    (directory / "parameters.yaml").write_text(
-        dump_parameter_yaml(raw=params_yaml)
-    )
-    (directory / "model.yaml").write_text(
-        dump_model_yaml(raw=model_yaml)
-    )
 
-    if not temp and block_items:
-        layout_yaml = build_layout_yaml(block_items)
-        (directory / "layout.yaml").write_text(
-            dump_layout_yaml(raw=layout_yaml)
-        )
-
+    (directory / "parameters.yaml").write_text(dump_parameter_yaml(project_state))
+    (directory / "model.yaml").write_text(dump_model_yaml(project_state))
+    if block_items and not temp:
+        (directory / "layout.yaml").write_text(dump_layout_yaml(block_items))
+    
 # ===============================================================
 # Build function
 # ===============================================================
@@ -202,22 +187,9 @@ def build_parameters_yaml(project_state: ProjectState) -> dict:
 
 def build_model_yaml(project_state: ProjectState) -> dict:
     return {
-        "blocks": [
-            {
-                "name": b.name,
-                "category": b.meta.category,
-                "type": b.meta.type,
-            }
-            for b in project_state.blocks
-        ],
-        "connections": [
-             [f"{c.src_block.name}.{c.src_port}",
-              f"{c.dst_block.name}.{c.dst_port}",
-            ]
-            for c in project_state.connections
-        ],
+        "blocks": [b.serialize() for b in project_state.blocks],
+        "connections": [c.serialize() for c in project_state.connections],
     }
-
 
 def build_layout_yaml(block_items: dict[str, BlockItem]) -> dict:
     """
