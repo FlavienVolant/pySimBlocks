@@ -98,6 +98,11 @@ class DiagramView(QGraphicsView):
         self.project_controller.add_connecton(self.pending_port.instance, port.instance)
         self.pending_port = None
 
+    def on_block_moved(self, block_item: BlockItem):
+        for conn_inst, conn_item in self.connections.items():
+            if conn_inst.is_block_involved(block_item.instance):
+                conn_item.update_position()
+
     def keyPressEvent(self, event):
         # COPY
         if event.key() == Qt.Key_C and event.modifiers() & Qt.ControlModifier:

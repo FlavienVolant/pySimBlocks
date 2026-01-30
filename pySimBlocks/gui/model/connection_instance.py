@@ -38,3 +38,6 @@ class ConnectionInstance:
 
     def dst_block(self) -> "BlockInstance":
         return self.dst_port.block
+    
+    def is_block_involved(self, block: "BlockInstance") -> bool:
+        return block is self.src_block() or block is self.dst_block()

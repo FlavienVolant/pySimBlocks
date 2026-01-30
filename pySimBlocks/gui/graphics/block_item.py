@@ -82,9 +82,7 @@ class BlockItem(QGraphicsRectItem):
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionHasChanged:
-            for port in self.port_items:
-                for c in port.connections:
-                    c.update_position()
+            self.view.on_block_moved(self)
         return super().itemChange(change, value)
 
     def get_port_item(self, name:str) -> PortItem | None:
