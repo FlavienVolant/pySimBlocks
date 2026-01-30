@@ -45,8 +45,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("pySimBlocks — Qt Edition")
 
         self.project_state = ProjectState(project_path)
-        self.diagram = DiagramView(self.resolve_block_meta, self.project_state)
+        self.diagram = DiagramView()
         self.project_controller = ProjectController(self.project_state, self.diagram, self.resolve_block_meta)
+        self.diagram.project_controller = self.project_controller
         self.blocks = BlockList(self.get_categories, self.get_blocks, self.resolve_block_meta)
         self.toolbar = ToolBarView(self.project_state, self.project_controller)
 

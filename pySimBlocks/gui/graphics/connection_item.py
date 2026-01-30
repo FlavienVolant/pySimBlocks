@@ -22,25 +22,26 @@ from PySide6.QtWidgets import QGraphicsItem, QGraphicsPathItem
 from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QPen, QPainterPath
 
+from pySimBlocks.gui.graphics.port_item import PortItem
 from pySimBlocks.gui.model.connection_instance import ConnectionInstance
 
 class ConnectionItem(QGraphicsPathItem):
     def __init__(self, 
-                 port1, # PortItem, circular import
-                 port2, # PortItem, circular import
+                 src_port: PortItem,
+                 dst_port: PortItem,
                  instance: ConnectionInstance):
         super().__init__()
         self.setFlag(QGraphicsItem.ItemIsSelectable)
 
-        self.port1 = port1
-        self.port2 = port2
+        self.src_port = src_port
+        self.dst_port = dst_port
         self.instance = instance
         self.setPen(QPen(Qt.black, 2))
         self.update_position()
 
     def update_position(self):
-        p1 = self.port1.scenePos()
-        p2 = self.port2.scenePos()
+        p1 = self.src_port.scenePos()
+        p2 = self.dst_port.scenePos()
 
         dx = abs(p2.x() - p1.x()) * 0.5
 
@@ -50,9 +51,3 @@ class ConnectionItem(QGraphicsPathItem):
         path = QPainterPath(p1)
         path.cubicTo(c1, c2, p2)
         self.setPath(path)
-
-    def remove(self):
-        if self in self.port1.connections:
-            self.port1.connections.remove(self)
-        if self in self.port2.connections:
-            self.port2.connections.remove(self)

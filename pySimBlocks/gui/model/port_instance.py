@@ -18,16 +18,18 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from typing import Any, Dict, Literal
+from typing import Any, Dict, Literal, TYPE_CHECKING
 
-from pySimBlocks.gui.model.connection_instance import ConnectionInstance
+if TYPE_CHECKING:
+    from pySimBlocks.gui.model.connection_instance import ConnectionInstance
+    from pySimBlocks.gui.services.project_controller import BlockInstance
 
 class PortInstance:
     def __init__(
         self,
         name: str,
         direction: Literal['input', 'output'],
-        block, # BlockInstance, can't import type due to circular import
+        block: "BlockInstance", # BlockInstance, can't import type due to circular import
         meta: Dict[str, Any],
     ):
         self.name = name
@@ -35,10 +37,10 @@ class PortInstance:
         self.block = block
         self.meta = meta
 
-    def is_compatible(self, other: 'PortInstance'):
+    def is_compatible(self, other: "PortInstance"):
         return self.direction != other.direction
     
-    def can_accept_connection(self, connections: list[ConnectionInstance]) -> bool:
+    def can_accept_connection(self, connections: list["ConnectionInstance"]) -> bool:
         """
         Check whether this port can accept a new connection.
 

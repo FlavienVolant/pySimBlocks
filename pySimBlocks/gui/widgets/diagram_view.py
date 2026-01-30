@@ -18,7 +18,6 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from typing import Callable
 from PySide6.QtWidgets import QGraphicsView, QGraphicsScene
 from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QPainter
@@ -28,113 +27,81 @@ from pySimBlocks.gui.graphics.connection_item import ConnectionItem
 from pySimBlocks.gui.graphics.port_item import PortItem
 from pySimBlocks.gui.model.block_instance import BlockInstance
 from pySimBlocks.gui.model.connection_instance import ConnectionInstance
-from pySimBlocks.gui.model.project_state import ProjectState
-from pySimBlocks.tools.blocks_registry import BlockMeta
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pySimBlocks.gui.services.project_controller import ProjectController
 
 
 class DiagramView(QGraphicsView):
-    def __init__(self, 
-                 resolve_block_meta: Callable[[str, str], BlockMeta], 
-                 project_state:ProjectState
-    ):
+    def __init__(self):
         super().__init__()
-        self.scene = QGraphicsScene(self)
-        self.setScene(self.scene)
+        self.diagram_scene = QGraphicsScene(self)
+        self.setScene(self.diagram_scene)
         self.setAcceptDrops(True)
         self.setRenderHint(QPainter.Antialiasing)
 
         self.pending_port: PortItem | None = None
         self.copied_block: BlockItem | None = None
-        self.resolve_block_meta = resolve_block_meta
-        self.project_state = project_state
+        self.project_controller: "ProjectController" | None
         self.block_items: dict[str, BlockItem] = {}
+        self.connections: dict[ConnectionInstance, ConnectionItem] = {}
 
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
         self.setDragMode(QGraphicsView.RubberBandDrag)
 
-
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():
             event.acceptProposedAction()
 
-
     def dragMoveEvent(self, event):
         event.acceptProposedAction()
 
-
     def dropEvent(self, event):
-        pos = self.mapToScene(event.position().toPoint())
+        self.drop_event_pos = self.mapToScene(event.position().toPoint())
         category, block_type = event.mimeData().text().split(":")
-        meta = self.resolve_block_meta(category, block_type)
-
-        instance = BlockInstance(meta)
-        self.project_state.add_block(instance)
-        block_item = BlockItem(instance, pos, self)
-
-        self.scene.addItem(block_item)
-        self.block_items[instance.uid] = block_item
+        self.project_controller.add_block(category, block_type)
         event.acceptProposedAction()
 
     def add_block(self, block_instance: BlockInstance):
-        pass
+        block_item = BlockItem(block_instance, self.drop_event_pos, self)
+        self.diagram_scene.addItem(block_item)
+        self.block_items[block_instance.uid] = block_item
 
     def remove_block(self, block_instance: BlockInstance):
-        pass
+        block_item = self.block_items[block_instance.uid]
+        self.diagram_scene.removeItem(block_item)
+        self.block_items.pop(block_instance.uid, None)
 
     def add_connecton(self, connection_instance: ConnectionInstance):
-        pass
+        src_port_item = self.get_block_item_from_instance(connection_instance.src_block()).get_port_item(connection_instance.src_port.name)
+        dst_port_item = self.get_block_item_from_instance(connection_instance.dst_block()).get_port_item(connection_instance.dst_port.name)
+        connection_item = ConnectionItem(src_port_item, dst_port_item, connection_instance)
+        self.connections[connection_instance] = connection_item
+        self.diagram_scene.addItem(connection_item)
 
     def remove_connection(self, connection_instance: ConnectionInstance):
-        pass
+        connection_item = self.connections.pop(connection_instance, None)
+        if connection_item:
+            self.diagram_scene.removeItem(connection_item)
 
-
-    def start_connection(self, port: PortItem):
-        self.pending_port = port
-
-
-    def finish_connection(self, port: PortItem):
-        if self.pending_port is None:
+    def get_block_item_from_instance(self, block_instance: BlockInstance) -> BlockItem | None:
+        return self.block_items.get(block_instance.uid)
+    
+    def create_connection_event(self, port: PortItem):
+        if not self.pending_port:
+            self.pending_port = port
             return
-
-        p1, p2 = self.pending_port, port
-        if not p1.is_compatible(p2):
-            self.pending_port = None
-            return
-
-        # Determine source / destination by port type
-        if p1.instance.direction == "output" and p2.instance.direction == "input":
-            src_port, dst_port = p1, p2
-        elif p1.instance.direction == "input" and p2.instance.direction == "output":
-            src_port, dst_port = p2, p1
-        else:
-            self.pending_port = None
-            return
-
-        if not dst_port.can_accept_connection():
-            self.pending_port = None
-            return
-
-        # Create model connection
-        conn_inst = ConnectionInstance(
-            src_block=src_port.parent_block.instance,
-            src_port=src_port.instance.name,
-            dst_block=dst_port.parent_block.instance,
-            dst_port=dst_port.instance.name,
-        )
-        self.project_state.add_connection(conn_inst)
-        conn_item = ConnectionItem(src_port, dst_port, conn_inst)
-        self.scene.addItem(conn_item)
-        src_port.add_connection(conn_item)
-        dst_port.add_connection(conn_item)
+        
+        self.project_controller.add_connecton(self.pending_port.instance, port.instance)
         self.pending_port = None
-
 
     def keyPressEvent(self, event):
         # COPY
         if event.key() == Qt.Key_C and event.modifiers() & Qt.ControlModifier:
-            selected = [i for i in self.scene.selectedItems() if isinstance(i, BlockItem)]
+            selected = [i for i in self.diagram_scene.selectedItems() if isinstance(i, BlockItem)]
             if selected:
                 self.copied_block = selected[0]
             return
@@ -147,9 +114,9 @@ class DiagramView(QGraphicsView):
                 block_type = self.copied_block.instance.meta.type
                 meta = self.resolve_block_meta(category, block_type)
                 instance = BlockInstance(meta)
-                self.project_state.add_block(instance)
+                self.project_controller.add_block(instance)
                 block_item = BlockItem(instance, pos, self)
-                self.scene.addItem(block_item)
+                self.diagram_scene.addItem(block_item)
                 self.block_items[instance.uid] = block_item
             return
 
@@ -172,26 +139,22 @@ class DiagramView(QGraphicsView):
 
 
     def delete_selected(self):
-        for item in self.scene.selectedItems():
+        for item in self.diagram_scene.selectedItems():
             if isinstance(item, BlockItem):
-                del self.block_items[item.instance.uid]
-                self.project_state.remove_block(item.instance)
-                item.remove_all_connections()
-                self.scene.removeItem(item)
+                self.project_controller.remove_block(item.instance)
 
             elif isinstance(item, ConnectionItem):
-                self.project_state.remove_connection(item.instance)
-                item.remove()
-                self.scene.removeItem(item)
-
+                self.project_controller.remove_connection(item.instance)
 
     def clear_scene(self):
-        for item in list(self.scene.items()):
-            self.scene.removeItem(item)
-            del item
-        self.block_items.clear()
-        self.pending_port = None
 
+        for block in self.block_items.values():
+            self.project_controller.remove_block(block.instance)
+        
+        for connection in self.connections.values():
+            self.project_controller.remove_connection(connection.instance)
+
+        self.pending_port = None
 
     def wheelEvent(self, event):
         if event.modifiers() & Qt.ControlModifier:

@@ -57,9 +57,8 @@ class ProjectController:
     def remove_block(self, block_instance: BlockInstance):
         
         # remove connections
-        for conn in self.project_state.get_connections_of_block(block_instance):
-            self.project_state.remove_connection(conn)
-            self.view.remove_connection(conn)
+        for connection in self.project_state.get_connections_of_block(block_instance):
+            self.remove_connection(connection)
 
         # delete all outputs signal from logging
         removed_signals = [
@@ -90,22 +89,16 @@ class ProjectController:
         if not port1.is_compatible(port2):
             return
         
-        src_port, dst_port = port1, port2 if port1.direction == "output" else port2, port1
+        src_port, dst_port = (
+            (port1, port2) if port1.direction == "output" else (port2, port1)
+        )
 
-        src_block: BlockInstance = src_port.block
-        dst_block: BlockInstance = dst_port.block
-
-        port_dst_connections = self.project_state.get_connections_of_block(dst_block)
+        port_dst_connections = self.project_state.get_connections_of_block(dst_port.block)
 
         if not dst_port.can_accept_connection(port_dst_connections):
             return
         
-        connection_instance = ConnectionInstance(
-            src_block, 
-            src_port.name, 
-            dst_block, 
-            dst_port.name
-        )
+        connection_instance = ConnectionInstance(src_port, dst_port)
 
         self.project_state.add_connection(connection_instance)
         self.view.add_connecton(connection_instance)

@@ -22,15 +22,18 @@ from PySide6.QtWidgets import  QGraphicsEllipseItem, QGraphicsTextItem, QGraphic
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor, QPen, QFont
 
-from pySimBlocks.gui.graphics.connection_item import ConnectionItem
-from pySimBlocks.gui.model.port_instance import PortInstance
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pySimBlocks.gui.model.port_instance import PortInstance
+    from pySimBlocks.gui.services.project_controller import BlockItem
 
 class PortItem(QGraphicsEllipseItem):
     R = 6
 
     def __init__(self, 
-                instance: PortInstance, 
-                parent_block, # BlockItem, can't import type due to circular import
+                instance: "PortInstance", 
+                parent_block: "BlockItem",
     ):
         super().__init__(
             -self.R, -self.R, 2 * self.R, 2 * self.R, parent_block
@@ -38,7 +41,6 @@ class PortItem(QGraphicsEllipseItem):
 
         self.instance = instance
         self.parent_block = parent_block
-        self.connections: list[ConnectionItem] = []
 
         self.setBrush(QBrush(QColor("white")))
         self.setPen(QPen(Qt.black, 1))
@@ -67,20 +69,16 @@ class PortItem(QGraphicsEllipseItem):
             )
 
     def mousePressEvent(self, event):
-        view = self.parent_block.view
-        if view.pending_port is None:
-            view.start_connection(self)
-        else:
-            view.finish_connection(self)
+        self.parent_block.view.create_connection_event(self)
         event.accept()
-
-    def add_connection(self, conn: ConnectionItem):
-        self.connections.append(conn)
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemScenePositionHasChanged:
+            """
+            TODO
             for c in self.connections:
                 c.update_position()
+            """
             self.update_label_position()
 
         return super().itemChange(change, value)
