@@ -22,7 +22,7 @@ from typing import Any, Dict, Literal, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pySimBlocks.gui.model.connection_instance import ConnectionInstance
-    from pySimBlocks.gui.services.project_controller import BlockInstance
+    from pySimBlocks.gui.project_controller import BlockInstance
 
 class PortInstance:
     def __init__(

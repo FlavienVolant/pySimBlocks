@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
 
 from PySide6.QtCore import Qt
 
-from pySimBlocks.gui.services.project_controller import ProjectController
+from pySimBlocks.gui.project_controller import ProjectController
 from pySimBlocks.gui.services.project_loader import ProjectLoaderYaml
 from pySimBlocks.gui.services.project_saver import ProjectSaverYaml
 from pySimBlocks.gui.services.simulation_runner import SimulationRunner

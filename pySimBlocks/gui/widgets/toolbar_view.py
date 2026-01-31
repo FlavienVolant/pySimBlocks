@@ -25,7 +25,7 @@ from PySide6.QtCore import Qt
 from pySimBlocks.gui.dialogs.display_yaml_dialog import DisplayYamlDialog
 from pySimBlocks.gui.dialogs.plot_dialog import PlotDialog
 from pySimBlocks.gui.dialogs.settings_dialog import SettingsDialog
-from pySimBlocks.gui.services.project_controller import ProjectController
+from pySimBlocks.gui.project_controller import ProjectController
 from pySimBlocks.gui.services.project_saver import ProjectSaver
 from pySimBlocks.gui.services.simulation_runner import SimulationRunner
 

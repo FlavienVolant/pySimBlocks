@@ -26,7 +26,7 @@ from pySimBlocks.gui.dialogs.settings.project import ProjectSettingsWidget
 from pySimBlocks.gui.dialogs.settings.simulation import SimulationSettingsWidget
 from pySimBlocks.gui.dialogs.settings.plots import PlotSettingsWidget
 from pySimBlocks.gui.model.project_state import ProjectState
-from pySimBlocks.gui.services.project_controller import ProjectController
+from pySimBlocks.gui.project_controller import ProjectController
 
 
 class SettingsDialog(QDialog):

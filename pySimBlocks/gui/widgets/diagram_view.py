@@ -31,7 +31,7 @@ from pySimBlocks.gui.model.connection_instance import ConnectionInstance
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pySimBlocks.gui.services.project_controller import ProjectController
+    from pySimBlocks.gui.project_controller import ProjectController
 
 
 class DiagramView(QGraphicsView):

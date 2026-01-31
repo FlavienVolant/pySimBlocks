@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
 )
 
 from pySimBlocks.gui.model.project_state import ProjectState
-from pySimBlocks.gui.services.project_controller import ProjectController
+from pySimBlocks.gui.project_controller import ProjectController
 from pySimBlocks.gui.services.project_loader import ProjectLoaderYaml
 
 

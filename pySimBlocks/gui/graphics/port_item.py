@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pySimBlocks.gui.model.port_instance import PortInstance
-    from pySimBlocks.gui.services.project_controller import BlockItem
+    from pySimBlocks.gui.project_controller import BlockItem
 
 class PortItem(QGraphicsEllipseItem):
     R = 6

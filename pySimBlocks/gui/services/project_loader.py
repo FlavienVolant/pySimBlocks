@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 from pySimBlocks.gui.services.yaml_tools import load_yaml_file
-from pySimBlocks.gui.services.project_controller import ProjectController
+from pySimBlocks.gui.project_controller import ProjectController
 from PySide6.QtCore import QPointF
 
 class ProjectLoader(ABC):
