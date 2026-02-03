@@ -2,10 +2,13 @@ version: 1
 blocks:
   controller:
     x: 25.0
-    y: -18.0
+    y: -20.0
+    orientation: normal
   step:
-    x: -172.0
-    y: -14.0
+    x: -170.0
+    y: -15.0
+    orientation: normal
   system:
-    x: 19.0
-    y: 96.0
+    x: 35.0
+    y: 90.0
+    orientation: flipped

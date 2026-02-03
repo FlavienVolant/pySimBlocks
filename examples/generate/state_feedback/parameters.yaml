@@ -1,7 +1,7 @@
 simulation:
   dt: 0.1
-  T: 10.0
   solver: fixed
+  T: 10.0
 blocks:
   controller:
     K: '#K'

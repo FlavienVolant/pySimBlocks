@@ -3,6 +3,8 @@ blocks:
   ref:
     x: 0.0
     y: 0.0
+    orientation: normal
   plant:
     x: 180.0
     y: 0.0
+    orientation: normal

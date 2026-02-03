@@ -3,6 +3,8 @@ blocks:
   ramp:
     x: 0.0
     y: 0.0
+    orientation: normal
   ramp_1:
     x: 180.0
     y: 0.0
+    orientation: normal
