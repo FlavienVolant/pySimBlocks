@@ -66,6 +66,10 @@ class DiagramView(QGraphicsView):
 
     def dropEvent(self, event):
         pos = self.mapToScene(event.position().toPoint())
+        dx = BlockItem.GRID_DX
+        dy = BlockItem.GRID_DY
+        pos = QPointF( round(pos.x() / dx) * dx, round(pos.y() / dy) * dy)
+
         category, block_type = event.mimeData().text().split(":")
         meta = self.resolve_block_meta(category, block_type)
 

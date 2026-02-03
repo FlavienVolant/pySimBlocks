@@ -1,14 +1,18 @@
 version: 1
 blocks:
   ref:
-    x: 0.0
-    y: -71.0
+    x: 25.0
+    y: -80.0
+    orientation: normal
   error:
     x: 195.0
-    y: -71.0
+    y: -70.0
+    orientation: normal
   pid:
-    x: 364.0
-    y: -71.0
+    x: 365.0
+    y: -70.0
+    orientation: normal
   plant:
-    x: 282.0
-    y: 39.0
+    x: 280.0
+    y: 40.0
+    orientation: flipped

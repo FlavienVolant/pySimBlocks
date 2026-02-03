@@ -30,6 +30,8 @@ from pySimBlocks.gui.model.block_instance import BlockInstance
 class BlockItem(QGraphicsRectItem):
     WIDTH = 120
     HEIGHT = 60
+    GRID_DX = 5
+    GRID_DY = 5
 
     def __init__(self, 
                  instance: BlockInstance, 
@@ -80,12 +82,19 @@ class BlockItem(QGraphicsRectItem):
         event.accept()
 
     # --------------------------------------------------------------
+
     def itemChange(self, change, value):
+        if change == QGraphicsItem.ItemPositionChange and self.scene():
+            x = round(value.x() / self.GRID_DX) * self.GRID_DX
+            y = round(value.y() / self.GRID_DY) * self.GRID_DY
+            return QPointF(x, y)
+
         if change == QGraphicsItem.ItemPositionHasChanged:
             for port in self.port_items:
                 for c in port.connections:
                     c.update_position()
         return super().itemChange(change, value)
+
 
     # --------------------------------------------------------------
     def remove_all_connections(self):
