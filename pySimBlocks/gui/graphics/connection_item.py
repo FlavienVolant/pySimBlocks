@@ -18,50 +18,83 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
+from PySide6.QtCore import QPointF, Qt
+from PySide6.QtGui import QPainterPath, QPainterPathStroker, QPen
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsPathItem
-from PySide6.QtCore import Qt, QPointF
-from PySide6.QtGui import QPen, QPainterPath, QPainterPathStroker
 
 from pySimBlocks.gui.model.connection_instance import ConnectionInstance
 
+
 class ConnectionItem(QGraphicsPathItem):
+    OFFSET = 8
+    MARGIN = 12
+    DETOUR = 8
+
+
     def __init__(self, 
                  port1, # PortItem, circular import
                  port2, # PortItem, circular import
                  instance: ConnectionInstance):
         super().__init__()
-        self.setFlag(QGraphicsItem.ItemIsSelectable)
+
 
         self.port1 = port1
         self.port2 = port2
         self.instance = instance
-
+        self.is_temporary = port2 is None
         t = self.port1.parent_block.view.theme
-        self.setPen(QPen(t.wire, 3))
+
+
+        if self.is_temporary:
+            self.setFlag(QGraphicsItem.ItemIsSelectable, False)
+            self.setAcceptedMouseButtons(Qt.NoButton)
+            pen = QPen(t.wire, 3, Qt.DashLine)
+        else:
+            self.setFlag(QGraphicsItem.ItemIsSelectable, True)
+            pen =  QPen(t.wire, 3, Qt.SolidLine)
+
+        self.setPen(pen)
         self.setZValue(1)
 
         self.update_position()
 
     # --------------------------------------------------------------
     def update_position(self):
+        if self.is_temporary:
+            return
         p1 = self.port1.connection_anchor()
         p2 = self.port2.connection_anchor()
+        self._build_path(p1, p2)
 
-        offset = 8
-        margin = 12
-        detour = 8
+    def update_temp_position(self, scene_pos: QPointF):
+        p1 = self.port1.connection_anchor()
+        self._build_path(p1, scene_pos)
 
+    def _build_path(self, p1: QPointF, p2: QPointF):
         src_block = self.port1.parent_block
-        dst_block = self.port2.parent_block
         src_rect = src_block.sceneBoundingRect()
+
+        if self.is_temporary:
+            src_out_sign = 1 if not self.port1.is_on_left_side else -1
+
+            p1_out = QPointF(p1.x() + src_out_sign * self.OFFSET, p1.y())
+
+            path = QPainterPath(p1)
+            path.lineTo(p1_out)
+            path.lineTo(p2)
+
+            self.setPath(path)
+            return
+
+        dst_block = self.port2.parent_block
         dst_rect = dst_block.sceneBoundingRect()
 
         # sign: outward direction from source and into destination (depends on side)
         src_out_sign = 1 if not self.port1.is_on_left_side else -1
         dst_in_sign = -1 if self.port2.is_on_left_side else 1
 
-        p1_out = QPointF(p1.x() + src_out_sign * offset, p1.y())
-        p2_in  = QPointF(p2.x() + dst_in_sign  * offset, p2.y())
+        p1_out = QPointF(p1.x() + src_out_sign * self.OFFSET, p1.y())
+        p2_in  = QPointF(p2.x() + dst_in_sign  * self.OFFSET, p2.y())
 
         path = QPainterPath(p1)
 
@@ -95,8 +128,8 @@ class ConnectionItem(QGraphicsPathItem):
             if not collides:
                 path = candidate
             else:
-                p1_far = QPointF(p1.x() + src_out_sign * detour, p1.y())
-                p2_far = QPointF(p2.x() + dst_in_sign * detour, p2.y())
+                p1_far = QPointF(p1.x() + src_out_sign * self.DETOUR, p1.y())
+                p2_far = QPointF(p2.x() + dst_in_sign * self.DETOUR, p2.y())
 
                 # route_y: petit décalage vertical pour éviter de repasser sur les ports
                 # (tu peux aussi reprendre ta logique "above/below/between" ici)
@@ -113,8 +146,8 @@ class ConnectionItem(QGraphicsPathItem):
                 if candidate2.intersects(src_rect) or candidate2.intersects(dst_rect):
                     # reprendre ton feedback chooser (above/below/between) mais sans u_turn
                     candidates_y = []
-                    candidates_y.append(min(src_rect.top(), dst_rect.top()) - margin)
-                    candidates_y.append(max(src_rect.bottom(), dst_rect.bottom()) + margin)
+                    candidates_y.append(min(src_rect.top(), dst_rect.top()) - self.MARGIN)
+                    candidates_y.append(max(src_rect.bottom(), dst_rect.bottom()) + self.MARGIN)
                     if src_rect.bottom() < dst_rect.top():
                         candidates_y.append((src_rect.bottom() + dst_rect.top()) * 0.5)
                     elif dst_rect.bottom() < src_rect.top():
@@ -139,11 +172,11 @@ class ConnectionItem(QGraphicsPathItem):
             candidates = []
 
             # above
-            y_above = min(src_rect.top(), dst_rect.top()) - margin
+            y_above = min(src_rect.top(), dst_rect.top()) - self.MARGIN
             candidates.append(y_above)
 
             # below
-            y_below = max(src_rect.bottom(), dst_rect.bottom()) + margin
+            y_below = max(src_rect.bottom(), dst_rect.bottom()) + self.MARGIN
             candidates.append(y_below)
 
             # between (only if there is a vertical gap)

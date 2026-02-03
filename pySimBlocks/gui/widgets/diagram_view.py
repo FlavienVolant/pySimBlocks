@@ -54,6 +54,7 @@ class DiagramView(QGraphicsView):
             app.paletteChanged.connect(lambda *_: QTimer.singleShot(0, self._apply_theme_from_system))
 
         self.pending_port: PortItem | None = None
+        self.temp_connection: ConnectionItem | None = None
         self.copied_block: BlockItem | None = None
         self.resolve_block_meta = resolve_block_meta
         self.project_state = project_state
@@ -63,7 +64,9 @@ class DiagramView(QGraphicsView):
         self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
         self.setDragMode(QGraphicsView.RubberBandDrag)
 
-    # --------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Event handlers
+    # --------------------------------------------------------------------------
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():
             event.acceptProposedAction()
@@ -89,47 +92,6 @@ class DiagramView(QGraphicsView):
         self.scene.addItem(block_item)
         self.block_items[instance.uid] = block_item
         event.acceptProposedAction()
-
-    # --------------------------------------------------------------
-    def start_connection(self, port: PortItem):
-        self.pending_port = port
-
-    # --------------------------------------------------------------
-    def finish_connection(self, port: PortItem):
-        if self.pending_port is None:
-            return
-
-        p1, p2 = self.pending_port, port
-        if not p1.is_compatible(p2):
-            self.pending_port = None
-            return
-
-        # Determine source / destination by port type
-        if p1.instance.direction == "output" and p2.instance.direction == "input":
-            src_port, dst_port = p1, p2
-        elif p1.instance.direction == "input" and p2.instance.direction == "output":
-            src_port, dst_port = p2, p1
-        else:
-            self.pending_port = None
-            return
-
-        if not dst_port.can_accept_connection():
-            self.pending_port = None
-            return
-
-        # Create model connection
-        conn_inst = ConnectionInstance(
-            src_block=src_port.parent_block.instance,
-            src_port=src_port.instance.name,
-            dst_block=dst_port.parent_block.instance,
-            dst_port=dst_port.instance.name,
-        )
-        self.project_state.add_connection(conn_inst)
-        conn_item = ConnectionItem(src_port, dst_port, conn_inst)
-        self.scene.addItem(conn_item)
-        src_port.add_connection(conn_item)
-        dst_port.add_connection(conn_item)
-        self.pending_port = None
 
     # --------------------------------------------------------------
     def keyPressEvent(self, event):
@@ -178,6 +140,85 @@ class DiagramView(QGraphicsView):
         super().keyPressEvent(event)
 
     # --------------------------------------------------------------
+    def wheelEvent(self, event):
+        if event.modifiers() & Qt.ControlModifier:
+            zoom_factor = 1.15
+            if event.angleDelta().y() > 0:
+                self.scale_view(zoom_factor)
+            else:
+                self.scale_view(1 / zoom_factor)
+            event.accept()
+        else:
+            super().wheelEvent(event)
+
+
+    # --------------------------------------------------------------
+    def mouseMoveEvent(self, event):
+        if self.temp_connection:
+            pos = self.mapToScene(event.position().toPoint())
+            self.temp_connection.update_temp_position(pos)
+            return
+        super().mouseMoveEvent(event)
+
+    # --------------------------------------------------------------
+    def mouseReleaseEvent(self, event):
+        if not self.pending_port:
+            super().mouseReleaseEvent(event)
+            return
+
+        pos = self.mapToScene(event.position().toPoint())
+        items = self.scene.items(pos)
+
+        target = next((i for i in items if isinstance(i, PortItem)), None)
+
+        self._finalize_connection(target)
+
+    # --------------------------------------------------------------------------
+    # Graphics management
+    # --------------------------------------------------------------------------
+    def start_connection(self, port: PortItem):
+        self.pending_port = port
+        self.temp_connection = ConnectionItem(port, None, None)
+        self.scene.addItem(self.temp_connection)
+
+    # --------------------------------------------------------------
+    def finish_connection(self, port: PortItem):
+        if self.pending_port is None:
+            return
+
+        p1, p2 = self.pending_port, port
+        if not p1.is_compatible(p2):
+            self.pending_port = None
+            return
+
+        # Determine source / destination by port type
+        if p1.instance.direction == "output" and p2.instance.direction == "input":
+            src_port, dst_port = p1, p2
+        elif p1.instance.direction == "input" and p2.instance.direction == "output":
+            src_port, dst_port = p2, p1
+        else:
+            self.pending_port = None
+            return
+
+        if not dst_port.can_accept_connection():
+            self.pending_port = None
+            return
+
+        # Create model connection
+        conn_inst = ConnectionInstance(
+            src_block=src_port.parent_block.instance,
+            src_port=src_port.instance.name,
+            dst_block=dst_port.parent_block.instance,
+            dst_port=dst_port.instance.name,
+        )
+        self.project_state.add_connection(conn_inst)
+        conn_item = ConnectionItem(src_port, dst_port, conn_inst)
+        self.scene.addItem(conn_item)
+        src_port.add_connection(conn_item)
+        dst_port.add_connection(conn_item)
+        self.pending_port = None
+
+    # --------------------------------------------------------------
     def delete_selected(self):
         for item in self.scene.selectedItems():
             if isinstance(item, BlockItem):
@@ -198,18 +239,6 @@ class DiagramView(QGraphicsView):
             del item
         self.block_items.clear()
         self.pending_port = None
-
-    # --------------------------------------------------------------
-    def wheelEvent(self, event):
-        if event.modifiers() & Qt.ControlModifier:
-            zoom_factor = 1.15
-            if event.angleDelta().y() > 0:
-                self.scale_view(zoom_factor)
-            else:
-                self.scale_view(1 / zoom_factor)
-            event.accept()
-        else:
-            super().wheelEvent(event)
 
     # --------------------------------------------------------------
     def scale_view(self, factor):
@@ -249,3 +278,17 @@ class DiagramView(QGraphicsView):
                     conn.setPen(QPen(self.theme.wire, 2))
                     conn.update_position()
                     conn.update()
+
+    # --------------------------------------------------------------
+    def _finalize_connection(self, target: PortItem | None):
+        self.scene.removeItem(self.temp_connection)
+        self.temp_connection = None
+
+        if (
+            target
+            and self.pending_port.is_compatible(target)
+            and target.can_accept_connection()
+        ):
+            self.finish_connection(target)
+
+        self.pending_port = None

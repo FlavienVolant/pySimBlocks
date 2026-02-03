@@ -19,7 +19,7 @@
 # ******************************************************************************
 
 from PySide6.QtCore import QRectF, Qt, QPointF
-from PySide6.QtGui import QBrush, QColor, QFont, QPainterPath, QPen, QPainter
+from PySide6.QtGui import QBrush, QFont, QPainterPath, QPen, QPainter
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsTextItem
 
 from pySimBlocks.gui.graphics.connection_item import ConnectionItem
@@ -27,7 +27,10 @@ from pySimBlocks.gui.model.port_instance import PortInstance
 
 
 class PortItem(QGraphicsItem):
-    R = 6
+    R = 6   # radius input port
+    L = 15  # length output port
+    H = 10  # height output port
+    RECT = QRectF(-8, -8, 15, 15) # bounding rect for both port types
 
 
     def __init__(self, instance: PortInstance, parent_block):
@@ -50,12 +53,7 @@ class PortItem(QGraphicsItem):
     # Visuals 
     # --------------------------------------------------------------------------
     def boundingRect(self) -> QRectF:
-        return QRectF(
-            -self.R - 1,
-            -self.R - 1,
-            2 * self.R + 2,
-            2 * self.R + 2,
-        )
+        return self.RECT
 
     # --------------------------------------------------------------
     def paint(self, painter, option, widget=None):
@@ -71,9 +69,9 @@ class PortItem(QGraphicsItem):
             painter.drawEllipse(-self.R, -self.R, 2 * self.R, 2 * self.R)
         else:
             path = QPainterPath()
-            path.moveTo(0, -self.R)
-            path.lineTo(0,  self.R)
-            tip_x = 2 * self.R if not self.is_on_left_side else -2 * self.R
+            path.moveTo(0, -self.H)
+            path.lineTo(0,  self.H)
+            tip_x = self.L if not self.is_on_left_side else - self.L
             path.lineTo(tip_x, 0)
             path.closeSubpath()
             painter.drawPath(path)
@@ -107,7 +105,7 @@ class PortItem(QGraphicsItem):
             x = -self.R if self.is_on_left_side else self.R
             local = QPointF(x, 0)
         else:
-            x = 2*self.R if not self.is_on_left_side else -2*self.R
+            x = self.L if not self.is_on_left_side else -self.L
             local = QPointF(x, 0)
         return self.mapToScene(local)
 
@@ -139,9 +137,9 @@ class PortItem(QGraphicsItem):
         if self.is_input:
             path.addEllipse(-self.R, -self.R, 2*self.R, 2*self.R)
         else:
-            tip_x = 2*self.R if not self.is_on_left_side else -2*self.R
-            path.moveTo(0, -self.R)
-            path.lineTo(0,  self.R)
+            tip_x = self.L if not self.is_on_left_side else -self.L
+            path.moveTo(0, -self.H)
+            path.lineTo(0,  self.H)
             path.lineTo(tip_x, 0)
             path.closeSubpath()
 
