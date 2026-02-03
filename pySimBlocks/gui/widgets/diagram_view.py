@@ -114,15 +114,8 @@ class DiagramView(QGraphicsView):
         # PASTE
         if event.key() == Qt.Key_V and event.modifiers() & Qt.ControlModifier:
             if self.copied_block:
-                pos = self.copied_block.pos() + QPointF(30, 30)
-                category = self.copied_block.instance.meta.category
-                block_type = self.copied_block.instance.meta.type
-                meta = self.resolve_block_meta(category, block_type)
-                instance = BlockInstance(meta)
-                self.project_controller.add_block(instance)
-                block_item = BlockItem(instance, pos, self)
-                self.diagram_scene.addItem(block_item)
-                self.block_items[instance.uid] = block_item
+                self.drop_event_pos = self.copied_block.pos() + QPointF(30, 30)
+                self.project_controller.add_copy_block(self.copied_block.instance)
             return
 
         # DELETE

@@ -19,10 +19,9 @@
 # ******************************************************************************
 
 import uuid
-from typing import Any, Callable, Dict, List, Literal, Sized
+from typing import Any, Dict, List, Literal, Self, Sized
 from pySimBlocks.gui.model.port_instance import PortInstance
 from pySimBlocks.tools.blocks_registry import BlockMeta
-
 
 class BlockInstance:
     """
@@ -32,6 +31,14 @@ class BlockInstance:
     - Stores instance-level data (name, parameters)
     - Used by BlockItem and BlockDialog
     """
+
+    @classmethod
+    def copy(cls, block: Self) -> Self:
+        cpy = BlockInstance(block.meta)
+        cpy.name = block.name + "_copy"
+        cpy.parameters = block.parameters.copy()
+        return cpy
+
 
     def __init__(self, meta: BlockMeta):
         self.uid: str = uuid.uuid4().hex

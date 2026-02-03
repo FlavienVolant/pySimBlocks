@@ -44,13 +44,23 @@ class ProjectController:
 
         block_meta = self.resolve_block_meta(category, block_type)
         block_instance = BlockInstance(block_meta)
+        self._add_block(block_instance)
 
+        return block_instance
+
+    def add_copy_block(self, block_instance: BlockInstance) -> BlockInstance:
+
+        copy = BlockInstance.copy(block_instance)
+        copy.name = self.make_unique_name(copy.name)
+        self._add_block(copy)
+        return copy
+
+    def _add_block(self, block_instance: BlockInstance):
         block_instance.name = self.make_unique_name(block_instance.name)
 
         self.project_state.add_block(block_instance)
         self.view.add_block(block_instance)
 
-        return block_instance
 
     def remove_block(self, block_instance: BlockInstance):
         
