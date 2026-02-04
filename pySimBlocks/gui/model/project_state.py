@@ -20,12 +20,21 @@
 
 from pathlib import Path
 
+from PySide6.QtCore import Signal, QObject
+
 from pySimBlocks.gui.model.block_instance import BlockInstance
 from pySimBlocks.gui.model.connection_instance import ConnectionInstance
 from pySimBlocks.gui.model.project_simulation_params import ProjectSimulationParams
 
-class ProjectState:
+
+class ProjectState(QObject):
+
+    is_dirty: bool = False
+    dirty_changed: Signal = Signal(bool)
+
     def __init__(self, directory_path: Path):
+        super().__init__()
+
         self.blocks: list[BlockInstance] = []
         self.connections: list[ConnectionInstance] = []
         self.simulation = ProjectSimulationParams()
@@ -36,6 +45,9 @@ class ProjectState:
         self.plots: list = []
 
 
+    # --------------------------------------------------------------------------
+    # Project management
+    # --------------------------------------------------------------------------
     def clear(self):
         self.blocks.clear()
         self.connections.clear()
@@ -48,25 +60,40 @@ class ProjectState:
 
         self.external = None
 
+    # ------------------------------------------------------------------
     def load_simulation(self, sim_data: dict, external):
         self.simulation.load_from_dict(sim_data)
 
         if external:
             self.external = external
 
+    # ------------------------------------------------------------------
+    def make_dirty(self):
+        if not self.is_dirty:
+            self.is_dirty = True
+            self.dirty_changed.emit(True)
 
-    # -------------------------
+    # ------------------------------------------------------------------
+    def clear_dirty(self):
+        if self.is_dirty:
+            self.is_dirty = False
+            self.dirty_changed.emit(False)
+
+    # --------------------------------------------------------------------------
     # Block management
-    # -------------------------
+    # ---------------------------------------------------------------------------
     def get_block(self, name:str):
         for block in self.blocks:
             if name == block.name:
                 return block
 
+    # ------------------------------------------------------------------
     def add_block(self, block_instance: BlockInstance):
         block_instance.name = self.make_unique_name(block_instance.name)
         self.blocks.append(block_instance)
+        self.make_dirty()
 
+    # ------------------------------------------------------------------
     def remove_block(self, block_instance: BlockInstance):
         if block_instance in self.blocks:
             # remove connections
@@ -95,20 +122,24 @@ class ProjectState:
             self.plots = new_plots
             # remove block
             self.blocks.remove(block_instance)
+            self.make_dirty()
 
-    # -------------------------
+    # --------------------------------------------------------------------------
     # Connection management
-    # -------------------------
+    # --------------------------------------------------------------------------
     def add_connection(self, conn: ConnectionInstance):
         self.connections.append(conn)
+        self.make_dirty()
 
+    # ------------------------------------------------------------------
     def remove_connection(self, conn: ConnectionInstance):
         if conn in self.connections:
             self.connections.remove(conn)
+            self.make_dirty()
 
-    # -------------------------
+    # --------------------------------------------------------------------------
     # Naming
-    # -------------------------
+    # --------------------------------------------------------------------------
     def make_unique_name(self, base_name: str) -> str:
         existing = {b.name for b in self.blocks}
 
@@ -121,6 +152,7 @@ class ProjectState:
 
         return f"{base_name}_{i}"
 
+    # ------------------------------------------------------------------
     def is_name_available(self, name: str, current=None) -> bool:
         for b in self.blocks:
             if b is current:
@@ -129,9 +161,9 @@ class ProjectState:
                 return False
         return True
 
-    # -------------------------
-    # Signals
-    # -------------------------
+    # --------------------------------------------------------------------------
+    # Signals Management
+    # --------------------------------------------------------------------------
     def get_output_signals(self) -> list[str]:
         signals = []
 

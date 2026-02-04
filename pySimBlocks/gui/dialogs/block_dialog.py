@@ -19,6 +19,7 @@
 # ******************************************************************************
 
 import ast
+import copy
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -43,6 +44,9 @@ class BlockDialog(QDialog):
     def __init__(self, block, readonly: bool = False):
         super().__init__()
         self.block = block # BlockItem
+        self._initial_name = block.instance.name
+        self._initial_params = copy.deepcopy(block.instance.parameters)
+
         self.readonly = readonly
         if self.readonly:
             self.setWindowTitle(f"[{self.block.instance.name}] Information")
@@ -79,8 +83,9 @@ class BlockDialog(QDialog):
 
         main_layout.addLayout(buttons_layout)
 
-    # ------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # Form
+    # --------------------------------------------------------------------------
     def description_part(self, form):
         title = QLabel(f"<b>{self.block.instance.meta.name}</b>")
         title.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -105,6 +110,7 @@ class BlockDialog(QDialog):
         frame_layout.addWidget(desc)
         form.addRow(frame)
 
+    # ------------------------------------------------------------------
     def build_parameters_form(self, layout):
         meta_params = self.block.instance.meta.parameters
         inst_params = self.block.instance.parameters
@@ -150,7 +156,7 @@ class BlockDialog(QDialog):
 
         self.update_visibility()
 
-
+    # ------------------------------------------------------------------
     def update_visibility(self):
         inst_params = self.block.instance.parameters
 
@@ -186,10 +192,9 @@ class BlockDialog(QDialog):
             widget.setVisible(visible)
             label.setVisible(visible)
 
-
-    # ------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # Buttons
-    # ------------------------------------------------------------
+    # --------------------------------------------------------------------------
     def apply(self):
         if self.readonly:
             return
@@ -198,7 +203,6 @@ class BlockDialog(QDialog):
 
         for pname, widget in self.param_widgets.items():
 
-            # NEW: hidden parameter => force to None
             if not widget.isVisible():
                 self.block.instance.parameters[pname] = None
                 continue
@@ -216,15 +220,21 @@ class BlockDialog(QDialog):
                 except Exception:
                     value = text
                 self.block.instance.parameters[pname] = value
-
+        changed = (
+                self.block.instance.name != self._initial_name or
+                self.block.instance.parameters != self._initial_params
+                )
+        if changed:
+            self.block.view.project_state.make_dirty()
         self.block.refresh_ports()
 
 
+    # ------------------------------------------------------------------
     def ok(self):
         self.apply()
         self.accept()
 
-
+    # ------------------------------------------------------------------
     def open_help(self):
         help_path = self.block.instance.meta.doc_path
 
@@ -234,9 +244,9 @@ class BlockDialog(QDialog):
         else:
             QMessageBox.information(self, "Help", "No documentation available.")
 
-
-    # ------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # internal methods
+    # --------------------------------------------------------------------------
     def _create_param_widget(self, name, meta, inst_params):
         ptype = meta.get("type")
         value = inst_params.get(name)
@@ -262,7 +272,7 @@ class BlockDialog(QDialog):
 
         return edit
 
-
+    # ------------------------------------------------------------------
     def _on_param_changed(self, name, value):
         if self.readonly:
             return

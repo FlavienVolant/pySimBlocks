@@ -19,8 +19,15 @@
 # ******************************************************************************
 
 from pathlib import Path
+
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
-    QWidget, QFormLayout, QLabel, QLineEdit, QMessageBox, QPushButton
+    QFormLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QWidget,
 )
 
 from pySimBlocks.gui.model.project_state import ProjectState
@@ -28,7 +35,13 @@ from pySimBlocks.gui.services.project_controller import ProjectController
 
 
 class ProjectSettingsWidget(QWidget):
-    def __init__(self, project_state: ProjectState, project_controller: ProjectController, settings_dialg):
+
+    project_loaded = Signal(Path)
+
+    def __init__(self, 
+                 project_state: ProjectState, 
+                 project_controller: ProjectController, 
+                 settings_dialg):
         super().__init__()
         self.project_state = project_state
         self.project_controller = project_controller
@@ -53,6 +66,21 @@ class ProjectSettingsWidget(QWidget):
         layout.addRow(label, load_btn)
 
 
+    # --------------------------------------------------------------------------
+    # Helpers 
+    # --------------------------------------------------------------------------
+    def has_changed(self) -> bool:
+        if Path(self.dir_edit.text()) != self.project_state.directory_path:
+            return True
+        ext = self.external_edit.text().strip()
+        new_ext = None if ext == "" else ext
+        if new_ext != self.project_state.external:
+            return True
+        return False
+
+    # --------------------------------------------------------------------------
+    # Button Handlers
+    # --------------------------------------------------------------------------
     def apply(self) -> bool:
         path = Path(self.dir_edit.text())
         if not path.exists():
@@ -67,9 +95,15 @@ class ProjectSettingsWidget(QWidget):
         self.project_state.external = None if ext == "" else ext
         return True
 
+    # ------------------------------------------------------------------
     def load_project(self):
-        self.apply()
+        if not self.apply():
+            return
+
         self.project_controller.load_project(self.project_state.directory_path)
+
         ext = self.project_state.external
         self.external_edit.setText("" if ext is None else ext)
+
         self.settings_dialog.refresh_tabs_from_project()
+        self.project_loaded.emit(self.project_state.directory_path)

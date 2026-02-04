@@ -30,7 +30,10 @@ from pySimBlocks.gui.services.project_controller import ProjectController
 
 
 class SettingsDialog(QDialog):
-    def __init__(self, project_state: ProjectState, project_controller: ProjectController,  parent=None):
+    def __init__(self, 
+                 project_state: ProjectState, 
+                 project_controller: ProjectController,  
+                 parent=None):
         super().__init__(parent)
         self.setWindowTitle("Settings")
         self.setMinimumWidth(500)
@@ -69,14 +72,28 @@ class SettingsDialog(QDialog):
 
         layout.addLayout(buttons)
 
+        # ---------------- Signals ----------------
+        self.project_tab.project_loaded.connect(
+                self.parent().on_project_loaded
+                )
+
+    # --------------------------------------------------------------------------
+    # Methods
+    # --------------------------------------------------------------------------
     def ok(self):
         self.apply()
         self.accept()
 
     def apply(self):
+        changed = self.project_tab.has_changed()
+        changed = self.simulation_tab.has_changed() or changed
+        changed = self.plots_tab.has_changed() or changed
+
         if not self.project_tab.apply():
             return
         self.simulation_tab.apply()
+        if changed:
+            self.project_state.make_dirty()
 
     def refresh_tabs_from_project(self):
         self.simulation_tab.refresh_from_project()

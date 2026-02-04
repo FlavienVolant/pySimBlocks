@@ -92,6 +92,7 @@ class BlockItem(QGraphicsRectItem):
             return QPointF(x, y)
 
         if change == QGraphicsItem.ItemPositionHasChanged:
+            self.view.project_state.make_dirty()
             for port in self.port_items:
                 for c in port.connections:
                     c.invalidate_manual_route()

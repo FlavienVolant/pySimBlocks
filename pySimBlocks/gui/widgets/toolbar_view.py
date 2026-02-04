@@ -18,24 +18,31 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from PySide6.QtWidgets import QToolBar, QMessageBox, QProgressDialog, QApplication
-from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QMessageBox,
+    QProgressDialog,
+    QToolBar,
+)
 
+# Add ons
+from pySimBlocks.gui.addons.sofa.sofa_dialog import SofaDialog
+from pySimBlocks.gui.addons.sofa.sofa_service import SofaService
 from pySimBlocks.gui.dialogs.display_yaml_dialog import DisplayYamlDialog
 from pySimBlocks.gui.dialogs.plot_dialog import PlotDialog
 from pySimBlocks.gui.dialogs.settings_dialog import SettingsDialog
 from pySimBlocks.gui.model.project_state import ProjectState
 from pySimBlocks.gui.services.project_controller import ProjectController
 
-# Add ons
-from pySimBlocks.gui.addons.sofa.sofa_dialog import SofaDialog
-from pySimBlocks.gui.addons.sofa.sofa_service import SofaService
-
 
 class ToolBarView(QToolBar):
 
-    def __init__(self, project_state: ProjectState, project_controller: ProjectController):
+    def __init__(self, 
+                 project_state: ProjectState, 
+                 project_controller: ProjectController):
         super().__init__()
 
         self.project_state = project_state
@@ -75,14 +82,23 @@ class ToolBarView(QToolBar):
         self.project_controller.save()
 
     def export_project(self):
+        main = self.window()
+        if not isinstance(main, QMainWindow):
+            return
+        if not main._confirm_discard_or_save("exporting"):
+            return
         self.project_controller.export()
 
     def open_display_yaml(self):
-        dialog = DisplayYamlDialog(self.project_state, self.project_controller.view)
+        dialog = DisplayYamlDialog(
+                self.project_state, self.project_controller.view, 
+                parent=self.window())
         dialog.exec()
 
     def open_simulation_settings(self):
-        dialog = SettingsDialog(self.project_state, self.project_controller)
+        dialog = SettingsDialog(
+                self.project_state, self.project_controller, 
+                parent=self.window())
         dialog.exec()
 
     def run_sim(self):
@@ -122,7 +138,8 @@ class ToolBarView(QToolBar):
                 QMessageBox.Ok,
             )
             return
-        self._plot_dialog = PlotDialog(self.project_state, self.parent()) # keep ref because of python garbage collector
+        self._plot_dialog = PlotDialog(
+                self.project_state, parent=self.window())
         self._plot_dialog.show()
 
 
@@ -150,5 +167,5 @@ class ToolBarView(QToolBar):
                 QMessageBox.Ok
             )
             return
-        dialog = SofaDialog(self.sofa_service)
+        dialog = SofaDialog(self.sofa_service, parent=self.window())
         dialog.exec()

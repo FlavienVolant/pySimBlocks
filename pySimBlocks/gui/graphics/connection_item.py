@@ -97,6 +97,7 @@ class ConnectionItem(QGraphicsPathItem):
         self.route = OrthogonalRoute(points)
         self.is_manual = True
         self._apply_route(self.route.points)
+        self.port1.parent_block.view.project_state.make_dirty()
 
     # ------------------------------------------------------------------
     def invalidate_manual_route(self):

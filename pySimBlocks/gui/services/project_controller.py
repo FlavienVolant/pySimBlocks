@@ -49,6 +49,7 @@ class ProjectController:
     # --------------------------------------------------------------------------
     def save(self):
         save_yaml(self.project_state, self.view.block_items)
+        self.project_state.clear_dirty()
 
     # ------------------------------------------------------------------
     def export(self):
@@ -149,6 +150,7 @@ class ProjectController:
             print(f"[Layout warning] {w}")
         self._instantiate_blocks_in_view(layout_blocks)
         self._instantiate_connections_in_view(layout_conns)
+        self.project_state.clear_dirty()
 
     # --------------------------------------------------------------------------
     # Internal loading methods

@@ -18,11 +18,17 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from PySide6.QtWidgets import (
-    QWidget, QFormLayout, QLabel, QLineEdit, QComboBox,
-    QListWidget, QListWidgetItem, QMessageBox
-)
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFormLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
+    QWidget,
+)
 
 from pySimBlocks.gui.model.project_state import ProjectState
 
@@ -52,6 +58,48 @@ class SimulationSettingsWidget(QWidget):
         self._define_log_list()
         layout.addRow("Signals logged:", self.logs_list)
 
+    # --------------------------------------------------------------------------
+    # Helpers 
+    # --------------------------------------------------------------------------
+    def has_changed(self) -> bool:
+        if str(self.project_state.simulation.dt) != self.dt_edit.text():
+            return True
+        elif str(self.project_state.simulation.T) != self.T_edit.text():
+            return True
+        elif self.project_state.simulation.solver != self.solver_combo.currentText():
+            return True
+        else:
+            selected = {
+                self.logs_list.item(i).text()
+                for i in range(self.logs_list.count())
+                if self.logs_list.item(i).checkState() == Qt.Checked
+            }
+            if set(self.project_state.logging) != selected:
+                return True
+        return False
+
+    # ------------------------------------------------------------------
+    def refresh_from_project(self):
+        """
+        Synchronize the log checkbox list with project_state.logging.
+        Called when the Simulation tab becomes active.
+        """
+        self._define_log_list()
+        selected = set(self.project_state.logging)
+        self.logs_list.blockSignals(True)
+
+        for i in range(self.logs_list.count()):
+            item = self.logs_list.item(i)
+            should_be_checked = item.text() in selected
+            item.setCheckState(
+                Qt.Checked if should_be_checked else Qt.Unchecked
+            )
+
+        self.logs_list.blockSignals(False)
+
+    # --------------------------------------------------------------------------
+    # Buttons handlers
+    # --------------------------------------------------------------------------
     def apply(self):
         try:
             self.project_state.simulation.dt = float(self.dt_edit.text())
@@ -71,24 +119,9 @@ class SimulationSettingsWidget(QWidget):
             if self.logs_list.item(i).checkState() == Qt.Checked
         ]
 
-    def refresh_from_project(self):
-        """
-        Synchronize the log checkbox list with project_state.logging.
-        Called when the Simulation tab becomes active.
-        """
-        self._define_log_list()
-        selected = set(self.project_state.logging)
-        self.logs_list.blockSignals(True)
-
-        for i in range(self.logs_list.count()):
-            item = self.logs_list.item(i)
-            should_be_checked = item.text() in selected
-            item.setCheckState(
-                Qt.Checked if should_be_checked else Qt.Unchecked
-            )
-
-        self.logs_list.blockSignals(False)
-
+    # --------------------------------------------------------------------------
+    # Internal methods
+    # --------------------------------------------------------------------------
     def _define_log_list(self):
         self.logs_list.blockSignals(True)
         self.logs_list.clear()
@@ -101,6 +134,7 @@ class SimulationSettingsWidget(QWidget):
             self.logs_list.addItem(item)
         self.logs_list.blockSignals(False)
 
+    # ------------------------------------------------------------------
     def _on_log_changed(self, item: QListWidgetItem):
         if item.checkState() == Qt.Unchecked:
             used = any(
