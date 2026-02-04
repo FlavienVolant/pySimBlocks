@@ -201,7 +201,7 @@ class BlockDialog(QDialog):
         if self.readonly:
             return
         
-        def get_param_value(widget):
+        def get_param_value(widget: 'QWidget'):
             if not widget.isVisible():
                 return None
 
@@ -275,6 +275,5 @@ class BlockDialog(QDialog):
     def _on_param_changed(self, name, value):
         if self.readonly:
             return
-        #TODO 
         self.block.instance.parameters[name] = value
         self.update_visibility()
