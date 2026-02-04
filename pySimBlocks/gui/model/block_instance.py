@@ -35,7 +35,7 @@ class BlockInstance:
     @classmethod
     def copy(cls, block: Self) -> Self:
         cpy = BlockInstance(block.meta)
-        cpy.name = block.name + "_copy"
+        cpy.name = block.name
         cpy.parameters = block.parameters.copy()
         return cpy
 

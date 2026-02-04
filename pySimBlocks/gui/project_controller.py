@@ -47,7 +47,6 @@ class ProjectController:
 
     def add_copy_block(self, block_instance: BlockInstance) -> BlockInstance:
         copy = BlockInstance.copy(block_instance)
-        copy.name = self.make_unique_name(copy.name)
         return self._add_block(copy)
 
     def _add_block(self, block_instance: BlockInstance) -> BlockInstance:
@@ -120,7 +119,6 @@ class ProjectController:
 
     def add_connection(self, port1: PortInstance, port2: PortInstance):
     
-
         if not port1.is_compatible(port2):
             return
         
@@ -129,7 +127,6 @@ class ProjectController:
         )
 
         port_dst_connections = self.project_state.get_connections_of_port(dst_port.block)
-
 
         if not dst_port.can_accept_connection(port_dst_connections):
             return

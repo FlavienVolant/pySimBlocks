@@ -81,6 +81,7 @@ class SettingsDialog(QDialog):
         self.plots_tab.refresh_from_project()
 
     def _on_tab_changed(self, index):
+        #save curr widget
         widget = self.tabs.widget(index)
 
         if hasattr(widget, "refresh_from_project"):

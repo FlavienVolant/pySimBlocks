@@ -275,5 +275,6 @@ class BlockDialog(QDialog):
     def _on_param_changed(self, name, value):
         if self.readonly:
             return
+        #TODO 
         self.block.instance.parameters[name] = value
         self.update_visibility()
