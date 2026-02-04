@@ -72,6 +72,11 @@ class MainWindow(QMainWindow):
         self.save_action.triggered.connect(self._on_save)
         self.addAction(self.save_action)
 
+        self.quit_action = QAction("Quit", self)
+        self.quit_action.setShortcut(QKeySequence.Quit)
+        self.quit_action.triggered.connect(self.close)
+        self.addAction(self.quit_action)
+
     # --------------------------------------------------------------------------
     # Registry
     # --------------------------------------------------------------------------
