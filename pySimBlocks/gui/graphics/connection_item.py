@@ -48,8 +48,8 @@ class ConnectionItem(QGraphicsPathItem):
         offset = 25
         margin = 20
 
-        src_block = self.port1.parent_block
-        dst_block = self.port2.parent_block
+        src_block = self.src_port.parent_block
+        dst_block = self.dst_port.parent_block
 
         src_rect = src_block.sceneBoundingRect()
         dst_rect = dst_block.sceneBoundingRect()
@@ -69,9 +69,6 @@ class ConnectionItem(QGraphicsPathItem):
         # CAS FEEDBACK (retour)
         # -------------------------------------------------
         else:
-            src_rect = self.port1.parent_block.sceneBoundingRect()
-            dst_rect = self.port2.parent_block.sceneBoundingRect()
-
             candidates = []
 
             # --- au-dessus ---
