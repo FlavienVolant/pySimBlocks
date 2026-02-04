@@ -26,7 +26,7 @@ from pySimBlocks.gui.dialogs.settings.project import ProjectSettingsWidget
 from pySimBlocks.gui.dialogs.settings.simulation import SimulationSettingsWidget
 from pySimBlocks.gui.dialogs.settings.plots import PlotSettingsWidget
 from pySimBlocks.gui.model.project_state import ProjectState
-from pySimBlocks.gui.services.project_controller import ProjectController
+from pySimBlocks.gui.project_controller import ProjectController
 
 
 class SettingsDialog(QDialog):
@@ -35,15 +35,13 @@ class SettingsDialog(QDialog):
         self.setWindowTitle("Settings")
         self.setMinimumWidth(500)
 
-        self.project_state = project_state
-
         layout = QVBoxLayout(self)
 
         # ---------------- Tabs ----------------
         self.tabs = QTabWidget()
         self.project_tab = ProjectSettingsWidget(project_state, project_controller, self)
-        self.simulation_tab = SimulationSettingsWidget(project_state)
-        self.plots_tab = PlotSettingsWidget(project_state)
+        self.simulation_tab = SimulationSettingsWidget(project_state, project_controller)
+        self.plots_tab = PlotSettingsWidget(project_state, project_controller)
 
         self.tabs.addTab(self.project_tab, "Project")
         self.tabs.addTab(self.simulation_tab, "Simulation")
@@ -83,6 +81,7 @@ class SettingsDialog(QDialog):
         self.plots_tab.refresh_from_project()
 
     def _on_tab_changed(self, index):
+        #save curr widget
         widget = self.tabs.widget(index)
 
         if hasattr(widget, "refresh_from_project"):

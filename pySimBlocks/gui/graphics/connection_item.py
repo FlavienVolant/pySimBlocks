@@ -22,18 +22,19 @@ from PySide6.QtWidgets import QGraphicsItem, QGraphicsPathItem
 from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QPen, QPainterPath, QPainterPathStroker
 
+from pySimBlocks.gui.graphics.port_item import PortItem
 from pySimBlocks.gui.model.connection_instance import ConnectionInstance
 
 class ConnectionItem(QGraphicsPathItem):
     def __init__(self, 
-                 port1, # PortItem, circular import
-                 port2, # PortItem, circular import
+                 src_port: PortItem,
+                 dst_port: PortItem,
                  instance: ConnectionInstance):
         super().__init__()
         self.setFlag(QGraphicsItem.ItemIsSelectable)
 
-        self.port1 = port1
-        self.port2 = port2
+        self.src_port = src_port
+        self.dst_port = dst_port
         self.instance = instance
         self.setPen(QPen(Qt.black, 2))
         self.update_position()
@@ -41,14 +42,14 @@ class ConnectionItem(QGraphicsPathItem):
 
     # --------------------------------------------------------------
     def update_position(self):
-        p1 = self.port1.connection_anchor()
-        p2 = self.port2.connection_anchor()
+        p1 = self.src_port.connection_anchor()
+        p2 = self.dst_port.connection_anchor()
 
         offset = 25
         margin = 20
 
-        src_block = self.port1.parent_block
-        dst_block = self.port2.parent_block
+        src_block = self.src_port.parent_block
+        dst_block = self.dst_port.parent_block
 
         src_rect = src_block.sceneBoundingRect()
         dst_rect = dst_block.sceneBoundingRect()
@@ -68,9 +69,6 @@ class ConnectionItem(QGraphicsPathItem):
         # CAS FEEDBACK (retour)
         # -------------------------------------------------
         else:
-            src_rect = self.port1.parent_block.sceneBoundingRect()
-            dst_rect = self.port2.parent_block.sceneBoundingRect()
-
             candidates = []
 
             # --- au-dessus ---
@@ -100,14 +98,6 @@ class ConnectionItem(QGraphicsPathItem):
             path.lineTo(p2)
 
         self.setPath(path)
-
-
-    # --------------------------------------------------------------
-    def remove(self):
-        if self in self.port1.connections:
-            self.port1.connections.remove(self)
-        if self in self.port2.connections:
-            self.port2.connections.remove(self)
 
     # --------------------------------------------------------------
     def shape(self):

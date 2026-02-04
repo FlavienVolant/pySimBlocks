@@ -25,12 +25,14 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from pySimBlocks.gui.model.project_state import ProjectState
+from pySimBlocks.gui.project_controller import ProjectController
 
 
 class SimulationSettingsWidget(QWidget):
-    def __init__(self, project_state: ProjectState):
+    def __init__(self, project_state: ProjectState, project_controller: ProjectController):
         super().__init__()
         self.project_state = project_state
+        self.project_controller = project_controller
 
         layout = QFormLayout(self)
         layout.addRow(QLabel("<b>Simulation Settings</b>"))
@@ -53,23 +55,26 @@ class SimulationSettingsWidget(QWidget):
         layout.addRow("Signals logged:", self.logs_list)
 
     def apply(self):
+
+        params = {}
         try:
-            self.project_state.simulation.dt = float(self.dt_edit.text())
+            params["dt"] = float(self.dt_edit.text())
         except ValueError:
-            self.project_state.simulation.dt = self.dt_edit.text()
-
+            params["dt"] = self.dt_edit.text()
         try:
-            self.project_state.simulation.T = float(self.T_edit.text())
+            params["T"] = float(self.T_edit.text())
         except ValueError:
-            self.project_state.simulation.T = self.T_edit.text()
+            params["T"] = self.T_edit.text()
+        params["solver"] = self.solver_combo.currentText()
 
-        self.project_state.simulation.solver = self.solver_combo.currentText()
-
-        self.project_state.logging = [
+        selected_signals = [
             self.logs_list.item(i).text()
             for i in range(self.logs_list.count())
             if self.logs_list.item(i).checkState() == Qt.Checked
         ]
+
+        self.project_controller.update_simulation_params(params)
+        self.project_controller.set_logged_signals(selected_signals)
 
     def refresh_from_project(self):
         """

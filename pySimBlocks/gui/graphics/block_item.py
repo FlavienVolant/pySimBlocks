@@ -18,13 +18,18 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from PySide6.QtWidgets import QGraphicsRectItem, QGraphicsView, QGraphicsItem, QStyle
+from PySide6.QtWidgets import QGraphicsRectItem, QGraphicsItem, QStyle
 from PySide6.QtCore import Qt, QPointF, QPoint
 from PySide6.QtGui import QColor, QPen
 
 from pySimBlocks.gui.dialogs.block_dialog import BlockDialog
 from pySimBlocks.gui.graphics.port_item import PortItem
-from pySimBlocks.gui.model.block_instance import BlockInstance
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pySimBlocks.gui.model.block_instance import BlockInstance
+    from pySimBlocks.gui.widgets.diagram_view import DiagramView
 
 
 class BlockItem(QGraphicsRectItem):
@@ -32,9 +37,9 @@ class BlockItem(QGraphicsRectItem):
     HEIGHT = 60
 
     def __init__(self, 
-                 instance: BlockInstance, 
+                 instance: "BlockInstance", 
                  pos: QPointF | QPoint, 
-                 view: QGraphicsView
+                 view: "DiagramView"
     ):
         super().__init__(0, 0, self.WIDTH, self.HEIGHT)
         self.view = view
@@ -77,21 +82,13 @@ class BlockItem(QGraphicsRectItem):
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionHasChanged:
-            for port in self.port_items:
-                for c in port.connections:
-                    c.update_position()
+            self.view.on_block_moved(self)
         return super().itemChange(change, value)
-
-    def remove_all_connections(self):
-        for port in self.port_items:
-            for conn in port.connections[:]:
-                conn.remove()
 
     def get_port_item(self, name:str) -> PortItem | None:
         for port in self.port_items:
             if port.instance.name == name:
                 return port
-
 
     def refresh_ports(self):
         for item in self.port_items:

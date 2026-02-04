@@ -22,8 +22,11 @@ from PySide6.QtCore import QRectF, Qt, QPointF
 from PySide6.QtGui import QBrush, QColor, QFont, QPainterPath, QPen, QPainter
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsTextItem
 
-from pySimBlocks.gui.graphics.connection_item import ConnectionItem
-from pySimBlocks.gui.model.port_instance import PortInstance
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pySimBlocks.gui.model.port_instance import PortInstance
+    from pySimBlocks.gui.graphics.block_item import BlockItem
 
 
 class PortItem(QGraphicsItem):
@@ -31,12 +34,11 @@ class PortItem(QGraphicsItem):
     INPUT_COLOR = QColor("#4A90E2")
     OUTPUT_COLOR = QColor("#E67E22")
 
-    def __init__(self, instance: PortInstance, parent_block):
+    def __init__(self, instance: 'PortInstance', parent_block: 'BlockItem'):
         super().__init__(parent_block)
 
         self.instance = instance
         self.parent_block = parent_block
-        self.connections: list[ConnectionItem] = []
 
         self.setFlag(QGraphicsItem.ItemSendsScenePositionChanges)
         self.setAcceptedMouseButtons(Qt.LeftButton)
@@ -115,11 +117,7 @@ class PortItem(QGraphicsItem):
     # Interaction
     # --------------------------------------------------------------------------
     def mousePressEvent(self, event):
-        view = self.parent_block.view
-        if view.pending_port is None:
-            view.start_connection(self)
-        else:
-            view.finish_connection(self)
+        self.parent_block.view.create_connection_event(self)
         event.accept()
 
     @property
@@ -143,26 +141,13 @@ class PortItem(QGraphicsItem):
 
         return path
 
-
     # --------------------------------------------------------------
     def is_compatible(self, other: 'PortItem'):
         return self.instance.direction != other.instance.direction
 
     # --------------------------------------------------------------
-    def can_accept_connection(self) -> bool:
-        if self.is_input:
-            return len(self.connections) == 0
-        return True
-
-    # --------------------------------------------------------------
-    def add_connection(self, conn: ConnectionItem):
-        self.connections.append(conn)
-
-    # --------------------------------------------------------------
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemScenePositionHasChanged:
-            for c in self.connections:
-                c.update_position()
             self.update_label_position()
 
         return super().itemChange(change, value)
