@@ -25,12 +25,14 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from pySimBlocks.gui.model.project_state import ProjectState
+from pySimBlocks.gui.project_controller import ProjectController
 
 
 class PlotSettingsWidget(QWidget):
-    def __init__(self, project_state: ProjectState):
+    def __init__(self, project_state: ProjectState, project_controller: ProjectController):
         super().__init__()
         self.project_state = project_state
+        self.project_controller = project_controller
         self.edit_index = None
 
         main = QHBoxLayout(self)
@@ -111,7 +113,7 @@ class PlotSettingsWidget(QWidget):
             item.setCheckState(Qt.Checked if sig in checked else Qt.Unchecked)
             self.signal_list.addItem(item)
 
-    def collect_selected_signals(self):
+    def collect_selected_signals(self) -> list[str]:
         return [
             self.signal_list.item(i).text()
             for i in range(self.signal_list.count())
@@ -163,24 +165,10 @@ class PlotSettingsWidget(QWidget):
             QMessageBox.warning(self, "Invalid plot", "No signal selected.")
             return
 
-        # Ensure signals are logged
-        for sig in signals:
-            if sig not in self.project_state.logging:
-                self.project_state.logging.append(sig)
-
         if self.edit_index is None:
-            # -------- CREATE --------
-            self.project_state.plots.append({
-                "title": title,
-                "signals": signals,
-            })
-            self.refresh_plot_list()
-            self.edit_index = len(self.project_state.plots) - 1
-            self.plot_list.setCurrentRow(self.edit_index)
+            self.project_controller.create_plot(title, signals)
         else:
-            # -------- UPDATE --------
-            self.project_state.plots[self.edit_index]["title"] = title
-            self.project_state.plots[self.edit_index]["signals"] = signals
+            self.project_controller.update_plot(self.edit_index, title, signals)
             self.plot_list.item(self.edit_index).setText(title)
 
         self.update_buttons_state()
@@ -190,7 +178,7 @@ class PlotSettingsWidget(QWidget):
         if self.edit_index is None:
             return
 
-        del self.project_state.plots[self.edit_index]
+        self.project_controller.delete_plot(self.edit_index)
         self.edit_index = None
         self.refresh_plot_list()
         self.plot_list.clearSelection()

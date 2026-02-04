@@ -31,7 +31,7 @@ class ProjectState:
         self.simulation = ProjectSimulationParams()
         self.external: str | None = None
         self.directory_path = directory_path
-        self.logging: list = []
+        self.logging: list[str] = []
         self.logs: dict = {}
         self.plots: list = []
 
@@ -48,7 +48,7 @@ class ProjectState:
 
         self.external = None
 
-    def load_simulation(self, sim_data: dict, external):
+    def load_simulation(self, sim_data: dict, external = None):
         self.simulation.load_from_dict(sim_data)
 
         if external:

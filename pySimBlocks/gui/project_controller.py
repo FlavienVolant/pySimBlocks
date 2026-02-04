@@ -19,7 +19,7 @@
 # ******************************************************************************
 
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 import shutil
 from pySimBlocks.gui.model import BlockInstance, ConnectionInstance, PortInstance, ProjectState
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
@@ -41,26 +41,52 @@ class ProjectController:
         self.view = view
 
     def add_block(self, category: str, block_type: str) -> BlockInstance:
-
         block_meta = self.resolve_block_meta(category, block_type)
         block_instance = BlockInstance(block_meta)
-        self._add_block(block_instance)
-
-        return block_instance
+        return self._add_block(block_instance)
 
     def add_copy_block(self, block_instance: BlockInstance) -> BlockInstance:
-
         copy = BlockInstance.copy(block_instance)
         copy.name = self.make_unique_name(copy.name)
-        self._add_block(copy)
-        return copy
+        return self._add_block(copy)
 
-    def _add_block(self, block_instance: BlockInstance):
+    def _add_block(self, block_instance: BlockInstance) -> BlockInstance:
         block_instance.name = self.make_unique_name(block_instance.name)
 
         self.project_state.add_block(block_instance)
         self.view.add_block(block_instance)
 
+        return block_instance
+
+    def rename_block(self, block_instance: BlockInstance, new_name: str):
+        old_name = block_instance.name
+        new_name = self.make_unique_name(new_name)
+
+        if old_name == new_name:
+            return
+        
+        block_instance.name = new_name
+        prefix_old = f"{old_name}.outputs."
+        prefix_new = f"{new_name}.outputs."
+
+        self.project_state.logging = [
+            s.replace(prefix_old, prefix_new)
+            if s.startswith(prefix_old) else s
+            for s in self.project_state.logging
+        ]
+
+        for plot in self.project_state.plots:
+            plot["signals"] = [
+                s.replace(prefix_old, prefix_new)
+                if s.startswith(prefix_old) else s
+                for s in plot["signals"]
+            ]
+
+    def update_block_param(self, block_instance: BlockInstance, params: dict[str, Any]):
+
+        self.rename_block(block_instance, params.pop("name", block_instance.name))
+        block_instance.update_params(params)
+        self.view.refresh_block_port(block_instance)
 
     def remove_block(self, block_instance: BlockInstance):
         
@@ -151,3 +177,30 @@ class ProjectController:
 
     def load_project(self, loader: 'ProjectLoader'):
         loader.load(self, self.project_state.directory_path)
+
+    def create_plot(self, title: str, signals: list[str]) -> None:
+        self._ensure_logged(signals)
+        self.project_state.plots.append({
+            "title": title,
+            "signals": list(signals),
+        })
+
+    def update_plot(self, index: int, title: str, signals: list[str]) -> None:
+        self._ensure_logged(signals)
+        plot = self.project_state.plots[index]
+        plot["title"] = title
+        plot["signals"] = list(signals)
+
+    def delete_plot(self, index: int) -> None:
+        del self.project_state.plots[index]
+
+    def _ensure_logged(self, signals: list[str]):
+        for sig in signals:
+            if sig not in self.project_state.logging:
+                self.project_state.logging.append(sig)
+
+    def update_simulation_params(self, params: dict[str, float | str]):
+        self.project_state.load_simulation(params)
+
+    def set_logged_signals(self, signals: list[str]):
+        self.project_state.logging = list(dict.fromkeys(signals))

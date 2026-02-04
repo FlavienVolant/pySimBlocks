@@ -35,15 +35,13 @@ class SettingsDialog(QDialog):
         self.setWindowTitle("Settings")
         self.setMinimumWidth(500)
 
-        self.project_state = project_state
-
         layout = QVBoxLayout(self)
 
         # ---------------- Tabs ----------------
         self.tabs = QTabWidget()
         self.project_tab = ProjectSettingsWidget(project_state, project_controller, self)
-        self.simulation_tab = SimulationSettingsWidget(project_state)
-        self.plots_tab = PlotSettingsWidget(project_state)
+        self.simulation_tab = SimulationSettingsWidget(project_state, project_controller)
+        self.plots_tab = PlotSettingsWidget(project_state, project_controller)
 
         self.tabs.addTab(self.project_tab, "Project")
         self.tabs.addTab(self.simulation_tab, "Simulation")

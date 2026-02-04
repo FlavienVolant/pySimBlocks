@@ -28,7 +28,7 @@ from pySimBlocks.gui.graphics.port_item import PortItem
 from pySimBlocks.gui.model.block_instance import BlockInstance
 from pySimBlocks.gui.model.connection_instance import ConnectionInstance
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from pySimBlocks.gui.project_controller import ProjectController
@@ -69,6 +69,11 @@ class DiagramView(QGraphicsView):
         block_item = BlockItem(block_instance, self.drop_event_pos, self)
         self.diagram_scene.addItem(block_item)
         self.block_items[block_instance.uid] = block_item
+    
+    def refresh_block_port(self, block_instance: BlockInstance):
+        block_item = self.get_block_item_from_instance(block_instance)
+        if block_item:
+            block_item.refresh_ports()
 
     def remove_block(self, block_instance: BlockInstance):
         block_item = self.block_items[block_instance.uid]
@@ -97,6 +102,9 @@ class DiagramView(QGraphicsView):
         
         self.project_controller.add_connection(self.pending_port.instance, port.instance)
         self.pending_port = None
+
+    def update_block_param_event(self, block_instance: BlockInstance, params: dict[str, Any]):
+        self.project_controller.update_block_param(block_instance, params)
 
     def on_block_moved(self, block_item: BlockItem):
         for conn_inst, conn_item in self.connections.items():

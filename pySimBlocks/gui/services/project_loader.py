@@ -60,8 +60,7 @@ class ProjectLoaderYaml(ProjectLoader):
 
             controller.view.drop_event_pos = positions.get(name, QPointF(0, 0))
             block = controller.add_block(category, block_type)
-
-            block.name = name
+            controller.rename_block(block, name)
 
             # ---- parameters ----
             raw_params = params_blocks.get(name, {})

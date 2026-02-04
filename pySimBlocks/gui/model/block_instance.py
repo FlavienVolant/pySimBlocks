@@ -61,6 +61,11 @@ class BlockInstance:
                 params[pname] = None
 
         return params
+    
+    def update_params(self, params: dict[str, Any]):
+        for k, v in params.items():
+            if k in self.parameters:
+                self.parameters[k] = v
 
     def resolve_ports(self) -> None:
         ports: List[PortInstance] = []

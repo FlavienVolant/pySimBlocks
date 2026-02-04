@@ -38,23 +38,30 @@ from PySide6.QtWidgets import (
 
 from pySimBlocks.gui.dialogs.help_dialog import HelpDialog
 
+from typing import TYPE_CHECKING, Any
+if TYPE_CHECKING:
+    from pySimBlocks.gui.graphics.block_item import BlockItem
+    from PySide6.QtWidgets import QWidget
+    
 
 class BlockDialog(QDialog):
-    def __init__(self, block, readonly: bool = False):
+    def __init__(self, 
+                 block: 'BlockItem', 
+                 readonly: bool = False
+    ):
         super().__init__()
-        self.block = block # BlockItem
+        self.block = block
         self.readonly = readonly
         if self.readonly:
             self.setWindowTitle(f"[{self.block.instance.name}] Information")
         else:
             self.setWindowTitle(f"Edit [{self.block.instance.name}] Parameters")
         self.setMinimumWidth(300)
-        self.param_widgets = {}
 
         main_layout = QVBoxLayout(self)
 
-        self.param_widgets = {}
-        self.param_labels = {}
+        self.param_widgets: dict[str, QWidget] = {}
+        self.param_labels: dict[str, QLabel] = {}
         self.depends_rules = {}
 
         self.build_parameters_form(main_layout)
@@ -193,32 +200,34 @@ class BlockDialog(QDialog):
     def apply(self):
         if self.readonly:
             return
-
-        self.block.instance.name = self.name_edit.text()
-
-        for pname, widget in self.param_widgets.items():
-
-            # NEW: hidden parameter => force to None
+        
+        def get_param_value(widget):
             if not widget.isVisible():
-                self.block.instance.parameters[pname] = None
-                continue
+                return None
 
             if isinstance(widget, QComboBox):
-                self.block.instance.parameters[pname] = widget.currentText()
+                return widget.currentText()
 
-            elif isinstance(widget, QLineEdit):
+            if isinstance(widget, QLineEdit):
                 text = widget.text().strip()
                 if not text:
-                    self.block.instance.parameters[pname] = None
-                    continue
+                    return None
                 try:
-                    value = ast.literal_eval(text)
+                    return ast.literal_eval(text)
                 except Exception:
-                    value = text
-                self.block.instance.parameters[pname] = value
+                    return text
 
-        self.block.refresh_ports()
+            return None
 
+        params: dict[str, Any] = {
+            "name": self.name_edit.text(),
+            **{
+                pname: get_param_value(widget) 
+                for pname, widget in self.param_widgets.items()
+            }
+        }
+
+        self.block.view.update_block_param_event(self.block.instance, params)
 
     def ok(self):
         self.apply()
