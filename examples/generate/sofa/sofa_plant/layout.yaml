@@ -5,15 +5,15 @@ blocks:
     y: -40.0
     orientation: normal
   Kp:
-    x: -10.0
+    x: 20.0
     y: -80.0
     orientation: normal
   Ki:
-    x: 145.0
+    x: 160.0
     y: 5.0
     orientation: normal
   integrator:
-    x: -10.0
+    x: 0.0
     y: 5.0
     orientation: normal
   sum:
@@ -28,3 +28,7 @@ blocks:
     x: -355.0
     y: -50.0
     orientation: normal
+connections:
+  sofa.measure -> error.in2:
+    route: [[615.0, -30.0], [623.0, -30.0], [623.0, 100.0], [-179.0, 100.0], [-179.0,
+        0.0], [-171.0, 0.0]]

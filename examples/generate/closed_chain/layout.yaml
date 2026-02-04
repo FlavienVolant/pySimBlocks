@@ -1,7 +1,7 @@
 version: 1
 blocks:
   ref:
-    x: 25.0
+    x: 30.0
     y: -80.0
     orientation: normal
   error:
@@ -13,6 +13,6 @@ blocks:
     y: -70.0
     orientation: normal
   plant:
-    x: 280.0
-    y: 40.0
-    orientation: flipped
+    x: 525.0
+    y: -70.0
+    orientation: normal
