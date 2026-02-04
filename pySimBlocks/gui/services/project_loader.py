@@ -21,23 +21,23 @@ class ProjectLoaderYaml(ProjectLoader):
         # 1. Parse YAML
         model_data = load_yaml_file(str(model_yaml))
         params_data = load_yaml_file(str(params_yaml))
-        layout_blocks, layout_warnings = self._load_layout_data(layout_yaml)
+        layout_blocks, layout_conns, layout_warnings = self._load_layout_data(
+            layout_yaml
+        )
+        for w in layout_warnings:
+            print(f"[Layout warning] {w}")
 
         # 2. Reset current state
         controller.clear()
 
-        # 3. Compute positions
-        positions, position_warnings = self._compute_block_positions(model_data, layout_blocks)
-        for w in layout_warnings + position_warnings:
-            print(f"[Layour warning] {w}")
-            
-
         # 3. build model
         self._load_simulation(controller, params_data)
-        self._load_blocks(controller, model_data, params_data, positions)
-        self._load_connections(controller, model_data)
+        self._load_blocks(controller, model_data, params_data, layout_blocks)
+        self._load_connections(controller, model_data, layout_conns)
         self._load_logging(controller, params_data)
         self._load_plots(controller, params_data)
+
+        controller.clear_dirty()
 
     
     def _load_simulation(self, controller: ProjectController, params_data: dict):
@@ -48,7 +48,12 @@ class ProjectLoaderYaml(ProjectLoader):
                      controller: ProjectController, 
                      model_data: dict, 
                      params_data: dict,
-                     positions: dict):
+                     layout_blocks: dict = {}):
+        positions, position_warnings = self._compute_block_positions(
+            model_data, layout_blocks
+            )
+        for w in position_warnings:
+            print(f"[Layout blocks warning] {w}")
         
         blocks = model_data.get("blocks", [])
         params_blocks = params_data.get("blocks", {})
@@ -57,9 +62,11 @@ class ProjectLoaderYaml(ProjectLoader):
             name = block["name"]
             category = block["category"]
             block_type = block["type"]
+            
+            block_layout = layout_blocks.get(name, {})
 
             controller.view.drop_event_pos = positions.get(name, QPointF(0, 0))
-            block = controller.add_block(category, block_type)
+            block = controller.add_block(category, block_type, block_layout)
             controller.rename_block(block, name)
 
             # ---- parameters ----
@@ -69,11 +76,19 @@ class ProjectLoaderYaml(ProjectLoader):
                     block.parameters[pname] = pvalue
 
             block.resolve_ports()
+            controller.view.refresh_block_port(block)
 
     def _load_connections(self, 
                           controller: ProjectController,
-                          model_data: dict):
+                          model_data: dict,
+                          layout_conns: dict | None):
         connections = model_data.get("connections", [])
+
+        routes, routes_warnings = self._parse_manual_routes(
+                model_data, layout_conns
+                )
+        for w in routes_warnings:
+            print(f"[Layout connections warning] {w}")
 
         for src, dst in connections:
             
@@ -86,7 +101,8 @@ class ProjectLoaderYaml(ProjectLoader):
             src_port = next(p for p in src_block.ports if p.name == src_port_name)
             dst_port = next(p for p in dst_block.ports if p.name == dst_port_name)
 
-            controller.add_connection(src_port, dst_port)
+            points = routes.get(f"{src} -> {dst}", None)
+            controller.add_connection(src_port, dst_port, points)
 
     def _load_logging(self, 
                       controller: ProjectController,
@@ -100,7 +116,8 @@ class ProjectLoaderYaml(ProjectLoader):
         plot_data = params_data.get("plots", {})
         controller.project_state.plots = plot_data
 
-    def _load_layout_data(self, layout_path: Path) -> tuple[dict | None, list[str]]:
+    def _load_layout_data(self, layout_path: Path
+                          ) -> tuple[dict | None, dict | None, list[str]]:
         """
         Load layout.yaml if it exists.
 
@@ -111,24 +128,29 @@ class ProjectLoaderYaml(ProjectLoader):
         warnings = []
 
         if not layout_path.exists():
-            return None, warnings  # Rule 1
+            return None, None, warnings  
 
         try:
             data = load_yaml_file(str(layout_path))
         except Exception as e:
             warnings.append(f"Failed to parse layout.yaml: {e}")
-            return None, warnings
+            return None, None, warnings
 
         if not isinstance(data, dict):
             warnings.append("layout.yaml is not a valid mapping, ignored.")
-            return None, warnings
+            return None, None, warnings
 
         blocks = data.get("blocks", {})
         if not isinstance(blocks, dict):
             warnings.append("layout.yaml.blocks is invalid, ignored.")
-            return None, warnings
+            return None, None, warnings
 
-        return blocks, warnings
+        conns = data.get("connections", None)
+        if conns is not None and not isinstance(conns, dict):
+            warnings.append("layout.yaml.connections is invalid, ignored.")
+            conns = None
+
+        return blocks, conns, warnings
 
     def _compute_block_positions(
         self,
@@ -189,3 +211,76 @@ class ProjectLoaderYaml(ProjectLoader):
             )
 
         return positions, warnings
+
+
+    def _parse_manual_routes(
+        self,
+        model_data: dict,
+        layout_connections: dict | None
+    ) -> tuple[dict[str, list[QPointF]], list[str]]:
+        """
+        Returns:
+            routes: dict[key -> list[QPointF]] for VALID routes only
+            warnings: list[str]
+        """
+        warnings = []
+        routes: dict[str, list[QPointF]] = {}
+
+        if not layout_connections:
+            return routes, warnings
+
+        blocks = model_data.get("blocks", [])
+        model_block_names = {b["name"] for b in blocks}
+        model_conn_keys = model_data.get("connections", [])
+
+        for key, payload in layout_connections.items():
+
+            try:
+                ports = payload["ports"]
+                src_block, src_port = [s.strip() for s in ports[0].split(".", 1)]
+                dst_block, dst_port = [s.strip() for s in ports[1].split(".", 1)]
+            except Exception:
+                warnings.append(f"Invalid connection key '{key}' in layout.yaml, ignored.")
+                continue
+
+            if src_block not in model_block_names or dst_block not in model_block_names:
+                warnings.append(
+                    f"layout.yaml contains connection '{key}' but a block is missing in model.yaml, ignored."
+                )
+                continue
+
+            if ports not in model_conn_keys:
+                warnings.append(
+                    f"layout.yaml contains connection '{ports}' not present in model.yaml, ignored."
+                )
+                continue
+
+            if not isinstance(payload, dict) or "route" not in payload:
+                warnings.append(f"layout.yaml connection '{key}' has no valid 'route', ignored.")
+                continue
+
+            raw_route = payload["route"]
+            if not isinstance(raw_route, list) or len(raw_route) < 2:
+                warnings.append(f"layout.yaml connection '{key}' route is invalid/too short, ignored.")
+                continue
+
+            pts: list[QPointF] = []
+            ok = True
+            for pt in raw_route:
+                if (
+                    not isinstance(pt, (list, tuple))
+                    or len(pt) != 2
+                    or not isinstance(pt[0], (int, float))
+                    or not isinstance(pt[1], (int, float))
+                ):
+                    ok = False
+                    break
+                pts.append(QPointF(float(pt[0]), float(pt[1])))
+
+            if not ok:
+                warnings.append(f"layout.yaml connection '{key}' route has invalid points, ignored.")
+                continue
+
+            routes[key] = pts
+
+        return routes, warnings

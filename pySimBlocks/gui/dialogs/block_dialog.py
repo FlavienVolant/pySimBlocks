@@ -51,6 +51,7 @@ class BlockDialog(QDialog):
     ):
         super().__init__()
         self.block = block
+
         self.readonly = readonly
         if self.readonly:
             self.setWindowTitle(f"[{self.block.instance.name}] Information")

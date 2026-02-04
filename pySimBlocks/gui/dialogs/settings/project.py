@@ -29,6 +29,7 @@ from pySimBlocks.gui.services.project_loader import ProjectLoaderYaml
 
 
 class ProjectSettingsWidget(QWidget):
+
     def __init__(self, project_state: ProjectState, project_controller: ProjectController, settings_dialg):
         super().__init__()
         self.project_state = project_state

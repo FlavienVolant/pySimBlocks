@@ -1,14 +1,18 @@
 version: 1
 blocks:
   error:
-    x: 137.0
-    y: -3.0
+    x: 95.0
+    y: -5.0
+    orientation: normal
   sofa:
-    x: 195.0
-    y: 140.0
+    x: 460.0
+    y: -5.0
+    orientation: normal
   ref:
-    x: -21.0
-    y: -14.0
+    x: -100.0
+    y: -15.0
+    orientation: normal
   PID:
-    x: 293.0
-    y: -2.0
+    x: 280.0
+    y: -5.0
+    orientation: normal

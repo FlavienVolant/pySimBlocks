@@ -1,7 +1,6 @@
 simulation:
   dt: 0.01
   T: 2.0
-  t0: 0.0
   solver: fixed
 blocks:
   ref:

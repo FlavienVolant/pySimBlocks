@@ -77,6 +77,7 @@ class ToolBarView(QToolBar):
 
     def on_save(self):
         self.saver.save(self.project_controller.project_state, self.project_controller.view.block_items)
+        self.project_controller.clear_dirty()
 
     def on_export_project(self):
         self.saver.export(self.project_controller.project_state, self.project_controller.view.block_items)

@@ -18,16 +18,18 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from pathlib import Path
 import os
+
 import yaml
-from pySimBlocks.gui.model.project_state import ProjectState
+
 from pySimBlocks.gui.graphics.block_item import BlockItem
+from pySimBlocks.gui.model.project_state import ProjectState
 
 
 def load_yaml_file(path: str) -> dict:
     with open(path, "r") as f:
         return yaml.safe_load(f) or {}
+
 # ===============================================================
 # Custom list type for flow-style sequences
 # ===============================================================
@@ -84,6 +86,7 @@ def _wrap_flow_matrices(obj):
 
 ModelYamlDumper.add_representer(FlowMatrix, _repr_flow_list)
 ModelYamlDumper.add_representer(FlowStyleList, _repr_flow_list)
+
 # ===============================================================
 # Dump helpers
 # ===============================================================
@@ -227,13 +230,49 @@ def build_layout_yaml(block_items: dict[str, BlockItem]) -> dict:
         "blocks": {}
     }
 
-    for item in block_items.values():
-        name = item.instance.name
-        pos = item.pos()
+    manual_connections = {}
+    seen = set()
+
+    for block in block_items.values():
+
+        # block logic
+        name = block.instance.name
+        pos = block.pos()
         data["blocks"][name] = {
             "x": float(pos.x()),
             "y": float(pos.y()),
+            "orientation": block.orientation
         }
+    view = block.view
+    for conn in view.connections.values():
+        if conn in seen:
+            continue
+        seen.add(conn)
+
+        if not conn.is_manual:
+            continue
+
+        src_port = conn.src_port
+        src_bname = src_port.parent_block.instance.name
+        src_pname = src_port.instance.name
+        dst_port = conn.dst_port
+        dst_bname = dst_port.parent_block.instance.name
+        dst_pname = dst_port.instance.name
+
+        key = f"{src_bname}.{src_pname} -> {dst_bname}.{dst_pname}"
+        value = {
+            "ports": FlowStyleList( [
+                f"{src_bname}.{src_pname}", f"{dst_bname}.{dst_pname}" 
+                ]),
+            "route": FlowStyleList([
+                FlowStyleList([float(p.x()), float(p.y())]) 
+                for p in conn.route.points
+                ])
+            }
+
+        manual_connections[key] = value
+
+    if manual_connections:
+        data["connections"] = manual_connections
 
     return data
-

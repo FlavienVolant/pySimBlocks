@@ -1,8 +1,10 @@
 version: 1
 blocks:
   Step:
-    x: 0.0
+    x: 10.0
     y: 0.0
+    orientation: normal
   NLSS:
     x: 180.0
     y: 0.0
+    orientation: normal

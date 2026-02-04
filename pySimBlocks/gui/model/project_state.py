@@ -54,9 +54,9 @@ class ProjectState:
         if external:
             self.external = external
 
-    # -------------------------
+    # --------------------------------------------------------------------------
     # Block management
-    # -------------------------
+    # --------------------------------------------------------------------------
     def get_block(self, name:str):
         for block in self.blocks:
             if name == block.name:
@@ -69,9 +69,9 @@ class ProjectState:
         if block_instance in self.blocks:
             self.blocks.remove(block_instance)
 
-    # -------------------------
+    # --------------------------------------------------------------------------
     # Connection management
-    # -------------------------
+    # --------------------------------------------------------------------------
     def add_connection(self, conn: ConnectionInstance):
         self.connections.append(conn)
 
@@ -91,9 +91,9 @@ class ProjectState:
             if port_instance is c.src_port or port_instance is c.dst_port
         ]
 
-    # -------------------------
+    # --------------------------------------------------------------------------
     # Signals
-    # -------------------------
+    # --------------------------------------------------------------------------
     def get_output_signals(self) -> list[str]:
         signals = []
 

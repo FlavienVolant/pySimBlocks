@@ -3,9 +3,12 @@ blocks:
   QuadraticProgram:
     x: 169.0
     y: -643.0
+    orientation: normal
   P:
-    x: -93.0
-    y: -721.0
+    x: -80.0
+    y: -720.0
+    orientation: normal
   q:
     x: -86.0
     y: -608.0
+    orientation: normal

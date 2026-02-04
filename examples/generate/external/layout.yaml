@@ -3,12 +3,16 @@ blocks:
   ref:
     x: 17.0
     y: -157.0
+    orientation: normal
   error:
     x: 196.0
     y: -149.0
+    orientation: normal
   pid:
     x: 369.0
     y: -149.0
+    orientation: normal
   plant:
-    x: 278.0
-    y: -40.0
+    x: 530.0
+    y: -150.0
+    orientation: normal
