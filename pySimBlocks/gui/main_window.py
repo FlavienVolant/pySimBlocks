@@ -155,14 +155,14 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------------
     def closeEvent(self, event):
-        if self._confirm_discard_or_save("closing"):
+        if self.confirm_discard_or_save("closing"):
             self.cleanup()
             event.accept()
         else:
             event.ignore() 
 
     # ------------------------------------------------------------------
-    def _confirm_discard_or_save(self, action_name: str) -> bool:
+    def confirm_discard_or_save(self, action_name: str) -> bool:
         if not self.project_controller.is_dirty:
             return True
 

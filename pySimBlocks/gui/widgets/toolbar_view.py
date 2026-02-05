@@ -80,8 +80,10 @@ class ToolBarView(QToolBar):
         self.project_controller.clear_dirty()
 
     def on_export_project(self):
-        self.saver.export(self.project_controller.project_state, self.project_controller.view.block_items)
-
+        window = self.parent()
+        if window.confirm_discard_or_save("exporting"):
+            self.saver.export(self.project_controller.project_state, self.project_controller.view.block_items)
+        
     def on_open_display_yaml(self):
         dialog = DisplayYamlDialog(self.project_controller.project_state, self.project_controller.view)
         dialog.exec()
