@@ -67,7 +67,7 @@ class DiagramView(QGraphicsView):
     # View methods
     # --------------------------------------------------------------------------
     def add_block(self, block_instance: BlockInstance, 
-                  block_layout: dict[str, Any] = {}):
+                  block_layout: dict[str, Any] | None = None):
         block_item = BlockItem(block_instance, self.drop_event_pos, self, block_layout)
         self.diagram_scene.addItem(block_item)
         self.block_items[block_instance.uid] = block_item

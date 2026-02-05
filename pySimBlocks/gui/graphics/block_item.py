@@ -42,11 +42,12 @@ class BlockItem(QGraphicsRectItem):
                  instance: "BlockInstance", 
                  pos: QPointF | QPoint, 
                  view: "DiagramView",
-                 layout: dict = {},
+                 layout: dict | None = None,
     ):
         super().__init__(0, 0, self.WIDTH, self.HEIGHT)
         self.view = view
         self.instance = instance
+        layout = layout or {}
         self.orientation = layout.get("orientation", "normal")
 
         self.setPos(pos)

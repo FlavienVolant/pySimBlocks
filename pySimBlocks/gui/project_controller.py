@@ -40,8 +40,6 @@ if TYPE_CHECKING:
 
 class ProjectController(QObject):
 
-    is_dirty: bool = False
-    dirty_changed: Signal = Signal(bool)
 
     def __init__(self,
                  project_state: ProjectState,
@@ -53,12 +51,15 @@ class ProjectController(QObject):
         self.resolve_block_meta = resolve_block_meta
         self.view = view
 
+        self.is_dirty: bool = False
+        self.dirty_changed: Signal = Signal(bool)
+
     # --------------------------------------------------------------------------
     # Blocks methods
     # --------------------------------------------------------------------------
     def add_block(self, category: str, 
                   block_type: str, 
-                  block_layout: dict = {}) -> BlockInstance:
+                  block_layout: dict | None = None) -> BlockInstance:
         block_meta = self.resolve_block_meta(category, block_type)
         block_instance = BlockInstance(block_meta)
         return self._add_block(block_instance, block_layout)
@@ -70,7 +71,7 @@ class ProjectController(QObject):
 
     # ------------------------------------------------------------------
     def _add_block(self, block_instance: BlockInstance, 
-                   block_layout: dict = {}) -> BlockInstance:
+                   block_layout: dict | None = None) -> BlockInstance:
         self.make_dirty()
         block_instance.name = self.make_unique_name(block_instance.name)
 
@@ -262,6 +263,7 @@ class ProjectController(QObject):
     # ------------------------------------------------------------------
     def delete_plot(self, index: int) -> None:
         del self.project_state.plots[index]
+        self.make_dirty()
 
     # ------------------------------------------------------------------
     def _ensure_logged(self, signals: list[str]):
