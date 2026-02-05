@@ -134,6 +134,32 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         """
         pass
 
+    def get_block(self, block_name: str):
+        """
+        Utility method to get a block from the model by name.
+        Only works if the model has been built.
+
+        Parameters
+        ----------
+        block_name : str
+            Name of the block to retrieve.
+
+        Returns
+        -------
+        Block
+            The block instance with the specified name.
+
+        Raises
+        ------
+        RuntimeError
+            If the model is not built or if the block is not found.
+        """
+        if self.sim is None:
+            raise RuntimeError("Simulator not initialized. Cannot get block.")
+        if block_name not in self.sim.model.blocks:
+            raise RuntimeError(f"Block '{block_name}' not found in the model.")
+        return self.sim.model.blocks[block_name] 
+
     # ----------------------------------------------------------------------
     # SOFA event callback 
     # ----------------------------------------------------------------------
@@ -297,8 +323,9 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         for plot in self.plot_cfg.plots:
             for var in plot["signals"]:
                 block_name, _, key = var.split(".")
+                block = self.get_block(block_name)
                 self._plot_data[f"{block_name}.{key}"] = self._plot_node.addChild(f"{block_name}_{key}")
-                value = self.sim.model.blocks[block_name].outputs[key].flatten()
+                value = block.outputs[key].flatten()
                 for i in range(len(value)):
                     self._plot_data[f"{block_name}.{key}"].addData(name=f"value{i}", type="float", value=value[i])
                     MyGui.PlottingWindow.addData(f"{block_name}.{key}[{i}]", self._plot_data[f"{block_name}.{key}"].getData(f"value{i}"))
@@ -313,7 +340,8 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
 
         for name, node in self._plot_data.items():
             block_name, key = name.split(".")
-            value = self.sim.model.blocks[block_name].outputs[key].flatten()
+            block = self.get_block(block_name)
+            value = block.outputs[key].flatten()
             for i in range(len(value)):
                 node.getData(f"value{i}").value = float(value[i])
 
@@ -335,7 +363,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         for var, extremum in data.items():
             block_name, key = var.split(".")
             node = self._slider_node.addChild(f"{block_name}_{key}")
-            block = self.sim.model.blocks[block_name]
+            block = self.get_block(block_name)
             value = getattr(block, key)
             self._slider_data[f"{block_name}.{key}"] = {"node": node, "shape": value.shape}
             value = value.flatten()
@@ -350,7 +378,7 @@ class SofaPysimBlocksController(Sofa.Core.Controller):
         """
         for var in self._slider_data:
             block_name, key = var.split(".")
-            block = self.sim.model.blocks[block_name]
+            block = self.get_block(block_name)
             node = self._slider_data[var]["node"]
             shape = self._slider_data[var]["shape"]
             new_values = []

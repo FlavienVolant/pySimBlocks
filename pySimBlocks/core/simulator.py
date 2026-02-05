@@ -185,6 +185,39 @@ class Simulator:
 
         return self.logs
 
+    # ------------------------------------------------------------------
+    def get_data(self, 
+                 variable: str | None = None, 
+                 block:str | None = None, 
+                 port: str | None = None) -> np.ndarray:
+        """Retrieve logged data for a specific variable, block output, or state.
+        Provide either:
+            - variable: the full variable name as logged (e.g., "BlockName.outputs.Port)
+            - block and port: to specify an output variable (e.g., block="BlockName", port="Port")
+        """
+        if variable is not None:
+            var_name = variable
+        elif block is not None and port is not None:
+            var_name = f"{block}.outputs.{port}"
+        else:
+            raise ValueError("Either variable or (block, port) must be provided.")
+
+        if var_name not in self.logs:
+            raise ValueError(f"Variable '{var_name}' is not logged. Available logs: {list(self.logs.keys())}")
+
+        data = self.logs.get(var_name)
+        if data is None:
+            raise ValueError(f"No data found for variable '{var_name}'.")
+        length = len(data)
+        if length == 0:
+            raise ValueError(f"Log for variable '{var_name}' is empty.")
+        shape = data[0].shape
+        try:
+            data_array = np.array(data).reshape(length, *shape)
+        except Exception as e:
+            raise ValueError(f"Failed to convert log data for variable '{var_name}' to numpy array: {e}") from e
+
+        return data_array
 
     # --------------------------------------------------------------------------
     # Private methods
