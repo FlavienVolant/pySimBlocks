@@ -12,7 +12,7 @@ a discrete-time numerical integration scheme.
 The integrator state evolves according to:
 
 $$
-x[k+1] = x[k] + dt \, u[k]
+x[k+1] = x[k] + dt * u[k]
 $$
 
 The output depends on the selected integration method.
@@ -26,7 +26,7 @@ $$
 ### Euler backward
 
 $$
-y[k] = x[k] + dt \, u[k]
+y[k] = x[k] + dt * u[k]
 $$
 
 where:

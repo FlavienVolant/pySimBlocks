@@ -235,8 +235,9 @@ def load_simulation_config(
         t0=sim_data.get("t0", 0.0),
         solver=sim_data.get("solver", "fixed"),
         logging=resolved.get("logging", []),
+        clock=sim_data.get("clock", "internal")
     )
-
+    
     sim_cfg.validate()
 
     # ------------------------------------------------------------

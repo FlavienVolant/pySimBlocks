@@ -115,6 +115,10 @@ class RealTimeRunner:
         dt_meas = t_now - self._t_prev
         dt_used = float(dt) if dt is not None else float(dt_meas)
 
+        # warning if dt is much larger than target_dt
+        if self.target_dt is not None and dt_used > 1.5 * self.target_dt:
+            print(f"[RealTimeRunner] Warning: dt={dt_used:.3f}s exceeds target_dt={self.target_dt:.3f}s")
+
         # 1) push inputs
         for block_name, block in self.input_blocks.items():
             if block_name not in inputs:

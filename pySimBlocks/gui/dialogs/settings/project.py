@@ -20,7 +20,7 @@
 
 from pathlib import Path
 from PySide6.QtWidgets import (
-    QWidget, QFormLayout, QLabel, QLineEdit, QMessageBox, QPushButton
+    QWidget, QFormLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QComboBox
 )
 
 from pySimBlocks.gui.model.project_state import ProjectState
@@ -42,17 +42,28 @@ class ProjectSettingsWidget(QWidget):
         self.dir_edit = QLineEdit(str(project_state.directory_path))
         layout.addRow("Directory path:", self.dir_edit)
 
+        load_btn = QPushButton("Load")
+        load_btn.clicked.connect(self.load_project)
+        label = QLabel("Load Project:")
+        label.setToolTip("Auto Load project from directory with parameters and model yaml.")
+        layout.addRow(label, load_btn)
+
         ext = project_state.external or ""
         self.external_edit = QLineEdit(ext)
         label = QLabel("Python file:")
         label.setToolTip("Relative path from project directory")
         layout.addRow(label, self.external_edit)
 
-        load_btn = QPushButton("Load")
-        load_btn.clicked.connect(self.load_project)
-        label = QLabel("Load Project:")
-        label.setToolTip("Auto Load project from directory with parameters and model yaml.")
-        layout.addRow(label, load_btn)
+        value = self.project_state.simulation.clock
+        combo = QComboBox()
+        combo.addItem("internal")
+        combo.addItem("external")
+        if value is not None:
+            combo.setCurrentText(str(value))
+        combo.currentTextChanged.connect(
+            lambda val, : setattr(self.project_state.simulation, "clock", val)
+        )
+        layout.addRow("Simulation clock:", combo)
 
 
     def apply(self) -> bool:

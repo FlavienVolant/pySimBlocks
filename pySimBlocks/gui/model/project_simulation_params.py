@@ -23,23 +23,28 @@ class ProjectSimulationParams:
     DEFAULT_DT = 0.1
     DEFAULT_T = 10.
     DEFAULT_SOLVER = "fixed"
+    DEFAULT_CLOCK = "internal"
 
     def __init__(
             self,
             dt: float = DEFAULT_DT,
             T: float = DEFAULT_T,
-            solver: str = DEFAULT_SOLVER
+            solver: str = DEFAULT_SOLVER,
+            clock: str = DEFAULT_CLOCK
     ):
         self.dt = dt
         self.T = T
         self.solver = solver
+        self.clock = clock
 
     def load_from_dict(self, params: dict) -> None:
         self.dt = params.get("dt", self.dt)
         self.T = params.get("T", self.T)
         self.solver = params.get("solver", self.solver)
+        self.clock = params.get("clock", self.clock)
 
     def clear(self) -> None:
         self.dt = self.DEFAULT_DT
         self.T = self.DEFAULT_T
         self.solver = self.DEFAULT_SOLVER
+        self.clock = self.DEFAULT_CLOCK

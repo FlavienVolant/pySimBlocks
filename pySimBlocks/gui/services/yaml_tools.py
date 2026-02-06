@@ -187,6 +187,9 @@ def build_parameters_yaml(project_state: ProjectState) -> dict:
         "plots": project_state.plots,
     }
 
+    if data["simulation"]["clock"] == "internal":
+        data["simulation"].pop("clock")
+
     for b in project_state.blocks:
         params = {
             k: v for k, v in b.parameters.items()
