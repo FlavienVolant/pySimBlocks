@@ -62,8 +62,7 @@ class ExternalInput(Block):
     def initialize(self, t0: float) -> None:
         u = self.inputs["in"]
         if u is None:
-            # Keep None at init (like your current behavior)
-            self.outputs["out"] = None
+            self.outputs["out"] = np.zeros((1, 1))
             return
 
         self.outputs["out"] = self._to_col_vec(u)

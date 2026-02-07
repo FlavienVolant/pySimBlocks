@@ -96,13 +96,15 @@ class StateFeedback(Block):
         r = self.inputs["r"]
         x = self.inputs["x"]
         if r is None or x is None:
-            self.outputs["u"] = None
+            self.outputs["u"] = np.zeros((self._m, 1))
             return
 
-        r = self._require_col_vector("r", self._p)
-        x = self._require_col_vector("x", self._n)
-
-        self.outputs["u"] = self.G @ r - self.K @ x
+        try:
+            r = self._require_col_vector("r", self._p)
+            x = self._require_col_vector("x", self._n)
+            self.outputs["u"] = self.G @ r - self.K @ x
+        except Exception as _:
+            self.outputs["u"] = np.zeros((self._m, 1))
 
     # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float):
