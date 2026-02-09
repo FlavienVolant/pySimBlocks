@@ -230,6 +230,7 @@ class Simulator:
         """
         self.output_order = self.model.build_execution_order()
         self.model.resolve_sample_times(self.sim_cfg.dt)
+        self.model._rebuild_downstream_map()
         sample_times = [b._effective_sample_time for b in self.model.blocks.values()]
 
         # regroup blocks by sample time
@@ -242,6 +243,10 @@ class Simulator:
             Task(sample_time, blocks, self.output_order)
             for sample_time, blocks in tasks_by_ts.items()
         ]
+
+        self._single_task = (len(self.tasks) == 1)
+        if self._single_task:
+            self._task0 = self.tasks[0]
 
         self.scheduler = Scheduler(self.tasks)
 
@@ -260,18 +265,19 @@ class Simulator:
                 "Supported modes are: 'fixed', 'variable'."
             )
 
+
     # ------------------------------------------------------------------
     def _propagate_from(self, block):
         """
         Propagate outputs of `block` to its direct downstream blocks.
         """
+        blocks = self.model.blocks
         for (src, dst) in self.model.downstream_of(block.name):
-            src_block, src_port = src
+            _, src_port = src
             dst_block, dst_port = dst
-
-            value = self.model.blocks[src_block].outputs[src_port]
+            value = block.outputs[src_port]
             if value is not None:
-                self.model.blocks[dst_block].inputs[dst_port] = value
+                blocks[dst_block].inputs[dst_port] = value
 
     # ------------------------------------------------------------------
     def _log(self, variables_to_log):

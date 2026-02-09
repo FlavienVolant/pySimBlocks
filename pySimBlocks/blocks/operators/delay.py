@@ -115,14 +115,22 @@ class Delay(Block):
     # Public methods
     # --------------------------------------------------------------------------
     def initialize(self, t0: float) -> None:
-        # Output always defined from buffer (important for loops)
-        self.outputs["out"] = self.state["buffer"][0].copy()
+        out = self.state["buffer"][0]
 
-        # If an input is already available at init, fix shape immediately
         u = self.inputs["in"]
         if u is not None:
             u_arr = np.asarray(u, dtype=float)
             self._ensure_shape_and_buffer(u_arr)
+
+            if self._is_scalar_2d(out) and self._buffer_shape != (1, 1):
+                out = np.full(self._buffer_shape, float(out[0, 0]), dtype=float)
+            else:
+                if out.shape != self._buffer_shape:
+                    raise ValueError(
+                        f"[{self.name}] Initial output shape mismatch: expected {self._buffer_shape}, got {out.shape}."
+                    )
+
+        self.outputs["out"] = out
 
     # ------------------------------------------------------------------
     def output_update(self, t: float, dt: float) -> None:
@@ -146,7 +154,6 @@ class Delay(Block):
 
         u_arr = np.asarray(u, dtype=float)
 
-        # Fix shape on first available input; then enforce forever
         self._ensure_shape_and_buffer(u_arr)
 
         buffer = self.state["buffer"]

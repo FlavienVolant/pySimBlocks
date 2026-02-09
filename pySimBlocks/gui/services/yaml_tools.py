@@ -181,7 +181,7 @@ def save_yaml(
 # ===============================================================
 def build_parameters_yaml(project_state: ProjectState) -> dict:
     data = {
-        "simulation": project_state.simulation.__dict__,
+        "simulation": project_state.simulation.__dict__.copy(),
         "blocks": {},
         "logging": project_state.logging,
         "plots": project_state.plots,
