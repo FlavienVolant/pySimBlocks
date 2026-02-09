@@ -11,6 +11,10 @@ class BlockMeta(ABC):
     """
     Template for child class
 
+from pySimBlocks.blocks_metadata.block_meta import BlockMeta
+from pySimBlocks.blocks_metadata.parameter_meta import ParameterMeta
+from pySimBlocks.blocks_metadata.port_meta import PortMeta
+
 class MyBlockMeta(BlockMeta):
 
     def __init__(self):
