@@ -30,14 +30,14 @@ class PortInstance:
     def __init__(
         self,
         name: str,
+        display_as: str,
         direction: Literal['input', 'output'],
-        block: "BlockInstance",
-        meta: PortMeta,
+        block: "BlockInstance"
     ):
         self.name = name
+        self.display_as = display_as
         self.direction = direction
         self.block = block
-        self.meta = meta
 
     def is_compatible(self, other: "PortInstance"):
         return self.direction != other.direction

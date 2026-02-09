@@ -1,11 +1,11 @@
 
 from typing import Any, Dict
-from pySimBlocks.blocks_metadata.block_meta import BlockMetaAbstract
+from pySimBlocks.blocks_metadata.block_meta import BlockMeta
 from pySimBlocks.blocks_metadata.parameter_meta import ParameterMeta
 from pySimBlocks.blocks_metadata.port_meta import PortMeta
 
 
-class PIDMeta(BlockMetaAbstract):
+class PIDMeta(BlockMeta):
 
     def __init__(self):
         self.name = "PID"

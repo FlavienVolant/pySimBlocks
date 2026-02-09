@@ -1,9 +1,9 @@
-from pySimBlocks.blocks_metadata.block_meta import BlockMetaAbstract
+from pySimBlocks.blocks_metadata.block_meta import BlockMeta
 from pySimBlocks.blocks_metadata.parameter_meta import ParameterMeta
 from pySimBlocks.blocks_metadata.port_meta import PortMeta
 
 
-class ConstantMeta(BlockMetaAbstract):
+class ConstantMeta(BlockMeta):
     
     def __init__(self):
         self.name = "Constant"
@@ -33,7 +33,7 @@ class ConstantMeta(BlockMetaAbstract):
             )
         ]
 
-        self.inputs = [
+        self.outputs = [
             PortMeta(
                 name="output",
                 display_as="out",
