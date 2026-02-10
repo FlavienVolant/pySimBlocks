@@ -60,6 +60,8 @@ def _register_block_from_py(
 
     module = importlib.import_module(module_name)
 
+    doc_path = _resolve_doc_path(py_path)
+
     for _, obj in inspect.getmembers(module, inspect.isclass):
         if not issubclass(obj, BlockMeta):
             continue
@@ -67,6 +69,8 @@ def _register_block_from_py(
             continue
 
         meta: BlockMeta = obj()
+
+        meta.doc_path = doc_path
 
         category = meta.category
         block_type = meta.type

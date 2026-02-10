@@ -222,7 +222,7 @@ class BlockDialog(QDialog):
     def open_help(self):
         help_path = self.block.instance.meta.doc_path
 
-        if help_path.exists():
+        if help_path and help_path.exists():
             dialog = HelpDialog(help_path, self)
             dialog.exec()
         else:

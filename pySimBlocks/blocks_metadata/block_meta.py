@@ -1,4 +1,5 @@
 from abc import ABC
+from pathlib import Path
 from typing import Any, Dict, List, Literal
 
 from pySimBlocks.blocks_metadata.parameter_meta import ParameterMeta
@@ -60,6 +61,7 @@ class MyBlockMeta(BlockMeta):
 
     # ----------- Optional declarations -----------
 
+    doc_path: Path | None = None
     parameters: List[ParameterMeta] = []
     inputs: List[PortMeta] = []
     outputs: List[PortMeta] = []
