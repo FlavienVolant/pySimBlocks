@@ -76,14 +76,14 @@ class AlgebraicFunctionMeta(BlockMeta):
     ) -> list["PortInstance"]:
 
         ports = []
-        if direction == "input" and port_meta.name == "in":
+        if direction == "input":
             keys = instance.parameters.get("input_keys", [])
             if keys is None:
                 return []
             for key in keys:
                 ports.append(
                     PortInstance(
-                        name=f"{port_meta.name}_{key}",
+                        name=f"{key}",
                         display_as=key,
                         direction="input",
                         block=instance
@@ -91,14 +91,14 @@ class AlgebraicFunctionMeta(BlockMeta):
                 )
             return ports
 
-        elif direction == "output" and port_meta.name == "out":
+        elif direction == "output":
             keys = instance.parameters.get("output_keys", [])
             if keys is None:
                 return []
             for key in keys:
                 ports.append(
                     PortInstance(
-                        name=f"{port_meta.name}_{key}",
+                        name=f"{key}",
                         display_as=key,
                         direction="output",
                         block=instance

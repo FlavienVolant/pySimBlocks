@@ -59,7 +59,7 @@ class LinearStateSpaceMeta(BlockMeta):
 
         self.inputs = [
             PortMeta(
-                name="input",
+                name="u",
                 display_as="u",
                 shape=["m", 1],
                 description="Input vector."
@@ -68,13 +68,13 @@ class LinearStateSpaceMeta(BlockMeta):
 
         self.outputs = [
             PortMeta(
-                name="state",
+                name="x",
                 display_as="x",
                 shape=["n", 1],
                 description="State vector."
             ),
             PortMeta(
-                name="output",
+                name="y",
                 display_as="y",
                 shape=["p", 1],
                 description="Output vector."

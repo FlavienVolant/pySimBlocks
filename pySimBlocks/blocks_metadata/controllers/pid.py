@@ -68,7 +68,7 @@ class PIDMeta(BlockMeta):
 
         self.inputs = [
             PortMeta(
-                name="error",
+                name="e",
                 display_as="e",
                 shape=[1, 1],
                 description="Error signal."
@@ -77,7 +77,7 @@ class PIDMeta(BlockMeta):
 
         self.outputs = [
             PortMeta(
-                name="command",
+                name="u",
                 display_as="u",
                 shape=[1, 1],
                 description="Control command."

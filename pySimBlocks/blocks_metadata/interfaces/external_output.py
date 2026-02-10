@@ -26,7 +26,7 @@ class ExternalOutputMeta(BlockMeta):
 
         self.inputs = [
             PortMeta(
-                name="input",
+                name="in",
                 display_as="in",
                 shape=["n", 1],
                 description="Model command/value signal."
@@ -35,7 +35,7 @@ class ExternalOutputMeta(BlockMeta):
 
         self.outputs = [
             PortMeta(
-                name="output",
+                name="out",
                 display_as="out",
                 shape=["m", 1],
                 description="External output signal."

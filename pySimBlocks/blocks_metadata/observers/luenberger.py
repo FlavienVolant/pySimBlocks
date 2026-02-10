@@ -59,7 +59,7 @@ class LuenbergerMeta(BlockMeta):
 
         self.inputs = [
             PortMeta(
-                name="input",
+                name="in",
                 display_as="u",
                 shape=["m", 1],
                 description="Control input."

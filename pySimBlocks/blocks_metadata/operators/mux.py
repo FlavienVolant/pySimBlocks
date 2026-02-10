@@ -40,7 +40,7 @@ class MuxMeta(BlockMeta):
 
         self.inputs = [
             PortMeta(
-                name="input",
+                name="in",
                 display_as="",
                 shape=["n", 1],
                 description="Input column vectors to concatenate."

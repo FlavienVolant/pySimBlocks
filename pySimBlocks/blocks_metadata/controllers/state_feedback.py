@@ -52,7 +52,7 @@ class StateFeedBackMeta(BlockMeta):
 
         self.outputs = [
             PortMeta(
-                name="output",
+                name="out",
                 display_as="u",
                 shape=["m", 1],
                 description="Control input vector."

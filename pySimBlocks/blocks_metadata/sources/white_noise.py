@@ -42,7 +42,7 @@ class WhiteNoiseMeta(BlockMeta):
 
         self.outputs = [
             PortMeta(
-                name="output",
+                name="out",
                 display_as="out",
                 shape=["n", "m"],
                 description="Gaussian noise output signal."

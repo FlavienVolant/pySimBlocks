@@ -88,6 +88,8 @@ class NonLinearStateSpaceMeta(BlockMeta):
     ) -> list["PortInstance"]:
         if direction == 'input' and port_meta.name == 'in':
             input_keys = instance.parameters.get("input_keys", [])
+            if input_keys is None:
+                return []
             return [
                 PortInstance(
                     name=key,
@@ -98,6 +100,8 @@ class NonLinearStateSpaceMeta(BlockMeta):
             ]
         elif direction == 'output' and port_meta.name == 'out':
             output_keys = instance.parameters.get("output_keys", [])
+            if output_keys is None:
+                return []
             return [
                 PortInstance(
                     name=key,

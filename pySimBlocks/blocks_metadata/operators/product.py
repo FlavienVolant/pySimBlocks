@@ -48,7 +48,7 @@ class ProductMeta(BlockMeta):
 
         self.inputs = [
             PortMeta(
-                name="input",
+                name="in",
                 display_as="",
                 shape=["n", "m"],
                 description="Input signals."
@@ -57,7 +57,7 @@ class ProductMeta(BlockMeta):
 
         self.outputs = [
             PortMeta(
-                name="output",
+                name="out",
                 display_as="out",
                 shape=["n", "m"],
                 description="Output signal."

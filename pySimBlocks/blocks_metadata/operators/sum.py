@@ -33,7 +33,7 @@ class SumMeta(BlockMeta):
 
         self.inputs = [
             PortMeta(
-                name="input",
+                name="in",
                 display_as="",
                 shape=["n", "m"]
             ),
@@ -41,7 +41,7 @@ class SumMeta(BlockMeta):
 
         self.outputs = [
             PortMeta(
-                name="output",
+                name="out",
                 display_as="out",
                 shape=["n", "m"]
             ),
@@ -53,7 +53,7 @@ class SumMeta(BlockMeta):
                            instance: "BlockInstance"
         ) -> list["PortInstance"]:
 
-        if direction == port_meta.name == "input":
+        if direction == "input" and port_meta.name == "in":
             signs = instance.parameters.get("signs", "")
             ports = []
 
