@@ -12,7 +12,7 @@ blocks:
   category: systems
   type: linear_state_space
 connections:
-- [ref.output, error.input1]
-- [plant.output, error.input2]
-- [error.output, pid.error]
-- [pid.command, plant.input]
+- [ref.out, error.in1]
+- [plant.y, error.in2]
+- [error.out, pid.e]
+- [pid.u, plant.u]
