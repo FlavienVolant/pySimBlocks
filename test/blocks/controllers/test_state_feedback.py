@@ -127,7 +127,7 @@ def test_state_feedback_invalid_input_shape_raises_runtimeerror():
     sim_cfg = SimulationConfig(0.1, 0.1, logging=["SF.outputs.u"])
     sim = Simulator(m, sim_cfg)
 
-    with pytest.raises(RuntimeError) as err:
+    with pytest.raises(ValueError) as err:
         sim.run()
 
     assert "must be a column vector" in str(err.value).lower()
@@ -136,7 +136,7 @@ def test_state_feedback_invalid_input_shape_raises_runtimeerror():
 # ------------------------------------------------------------
 # 6) Wrong vector dimension: r has wrong rows -> RuntimeError
 # ------------------------------------------------------------
-def test_state_feedback_wrong_r_dimension_raises_runtimeerror():
+def test_state_feedback_wrong_r_dimension_raises_valueerror():
     K = np.zeros((2, 2))
     G = np.zeros((2, 1))  # expects r shape (1,1)
 
@@ -158,7 +158,7 @@ def test_state_feedback_wrong_r_dimension_raises_runtimeerror():
     sim_cfg = SimulationConfig(0.1, 0.1, logging=["SF.outputs.u"])
     sim = Simulator(m, sim_cfg)
 
-    with pytest.raises(RuntimeError) as err:
+    with pytest.raises(ValueError) as err:
         sim.run()
 
     assert "wrong dimension" in str(err.value).lower()

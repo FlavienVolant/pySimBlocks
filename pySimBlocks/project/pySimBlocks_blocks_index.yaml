@@ -1,6 +1,3 @@
-# pySimBlocks - LGPL-3.0-or-later
-# Copyright (c) 2026 Université de Lille & INRIA
-
 controllers:
   pid:
     class: Pid
@@ -61,6 +58,9 @@ optimizers:
     class: QuadraticProgram
     module: pySimBlocks.blocks.optimizers.quadratic_program
 sources:
+  chirp:
+    class: Chirp
+    module: pySimBlocks.blocks.sources.chirp
   constant:
     class: Constant
     module: pySimBlocks.blocks.sources.constant

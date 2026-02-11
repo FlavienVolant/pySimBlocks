@@ -76,14 +76,13 @@ class MuxMeta(BlockMeta):
             )
         ]
 
-    def resolve_port_group(
-        self,
-        port_meta: PortMeta,
-        direction: Literal['input', 'output'],
-        instance: "BlockInstance"
-    ) -> list["PortInstance"]:
+    def resolve_port_group(self, 
+                           port_meta: PortMeta,
+                           direction: Literal['input', 'output'], 
+                           instance: "BlockInstance"
+        ) -> list["PortInstance"]:
 
-        if direction == port_meta.name == "input":
+        if direction == "input" and port_meta.name == "in":
             num_inputs = instance.parameters.get("num_inputs", 0)
             ports = []
             for i in range(1, num_inputs + 1):
