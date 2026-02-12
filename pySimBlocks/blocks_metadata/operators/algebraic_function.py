@@ -27,7 +27,7 @@ from pySimBlocks.gui.model import BlockInstance, PortInstance
 class AlgebraicFunctionMeta(BlockMeta):
 
     def __init__(self):
-        self.name = "Algebraic Function"
+        self.name = "AlgebraicFunction"
         self.category = "operators"
         self.type = "algebraic_function"
         self.summary = "User-defined stateless algebraic function implemented in Python."
