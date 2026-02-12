@@ -79,13 +79,13 @@ class LuenbergerMeta(BlockMeta):
 
         self.inputs = [
             PortMeta(
-                name="in",
+                name="u",
                 display_as="u",
                 shape=["m", 1],
                 description="Control input."
             ),
             PortMeta(
-                name="measurement",
+                name="y",
                 display_as="y",
                 shape=["p", 1],
                 description="Measured output."
@@ -94,13 +94,13 @@ class LuenbergerMeta(BlockMeta):
 
         self.outputs = [
             PortMeta(
-                name="state_estimate",
+                name="x_hat",
                 display_as="x_hat",
                 shape=["n", 1],
                 description="Estimated state vector."
             ),
             PortMeta(
-                name="output_estimate",
+                name="y_hat",
                 display_as="y_hat",
                 shape=["p", 1],
                 description="Estimated output."
