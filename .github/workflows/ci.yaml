@@ -29,7 +29,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-glx libegl1 libx11-6
+          sudo apt-get install -y libgl1 libglx-mesa0 libegl1-mesa libx11-6
 
       - name: Set QT environment for headless
         run: echo "QT_QPA_PLATFORM=offscreen" >> $GITHUB_ENV
