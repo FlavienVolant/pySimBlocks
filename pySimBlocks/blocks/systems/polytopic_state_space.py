@@ -158,6 +158,8 @@ class PolytopicStateSpace(Block):
         w_vec = self._to_col_vec("w", w, self._r)
         if not np.isclose(np.sum(w_vec), 1.0):
             raise ValueError(f"[{self.name}] Vertex weights w must sum to 1. Got sum {np.sum(w_vec)}.")
+        if np.any(w_vec < 0):
+            raise ValueError(f"[{self.name}] Vertex weights w must be non-negative. Got {w_vec.flatten()}.")
 
         u_vec = self._to_col_vec("u", u, self._nu)
         x = self.state["x"]
