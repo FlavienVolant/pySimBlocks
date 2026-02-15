@@ -21,7 +21,7 @@
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QPoint, QPointF, QRectF, Qt
-from PySide6.QtGui import QPen
+from PySide6.QtGui import QPainterPath, QPen
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsRectItem, QStyle
 
 from pySimBlocks.gui.dialogs.block_dialog import BlockDialog
@@ -40,6 +40,7 @@ class BlockItem(QGraphicsRectItem):
     GRID_DX = 5
     GRID_DY = 5
     SELECTION_HANDLE_SIZE = 8
+    SELECTION_HANDLE_HIT_SIZE = 16
 
     def __init__(self,
                  instance: "BlockInstance",
@@ -111,8 +112,16 @@ class BlockItem(QGraphicsRectItem):
     # Visual Methods
     # --------------------------------------------------------------------------
     def boundingRect(self) -> QRectF:
-        half = self.SELECTION_HANDLE_SIZE / 2
+        half = self.SELECTION_HANDLE_HIT_SIZE / 2
         return self.rect().adjusted(-half, -half, half, half)
+
+    # --------------------------------------------------------------
+    def shape(self) -> QPainterPath:
+        path = QPainterPath()
+        path.addRect(self.rect())
+        for rect in self._handle_hit_rects().values():
+            path.addRect(rect)
+        return path
 
     # --------------------------------------------------------------
     def paint(self, painter, option, widget=None):
@@ -230,16 +239,19 @@ class BlockItem(QGraphicsRectItem):
     # --------------------------------------------------------------------------
     # Private Methods
     # --------------------------------------------------------------------------
-    def _handle_at(self, local_pos: QPointF) -> str | None:
-        half = self.SELECTION_HANDLE_SIZE / 2
+    def _handle_hit_rects(self) -> dict[str, QRectF]:
+        half = self.SELECTION_HANDLE_HIT_SIZE / 2
         r = self.rect()
-        handles = {
-            "tl": QRectF(r.left() - half, r.top() - half, self.SELECTION_HANDLE_SIZE, self.SELECTION_HANDLE_SIZE),
-            "tr": QRectF(r.right() - half, r.top() - half, self.SELECTION_HANDLE_SIZE, self.SELECTION_HANDLE_SIZE),
-            "bl": QRectF(r.left() - half, r.bottom() - half, self.SELECTION_HANDLE_SIZE, self.SELECTION_HANDLE_SIZE),
-            "br": QRectF(r.right() - half, r.bottom() - half, self.SELECTION_HANDLE_SIZE, self.SELECTION_HANDLE_SIZE),
+        return {
+            "tl": QRectF(r.left() - half, r.top() - half, self.SELECTION_HANDLE_HIT_SIZE, self.SELECTION_HANDLE_HIT_SIZE),
+            "tr": QRectF(r.right() - half, r.top() - half, self.SELECTION_HANDLE_HIT_SIZE, self.SELECTION_HANDLE_HIT_SIZE),
+            "bl": QRectF(r.left() - half, r.bottom() - half, self.SELECTION_HANDLE_HIT_SIZE, self.SELECTION_HANDLE_HIT_SIZE),
+            "br": QRectF(r.right() - half, r.bottom() - half, self.SELECTION_HANDLE_HIT_SIZE, self.SELECTION_HANDLE_HIT_SIZE),
         }
-        for name, rect in handles.items():
+
+    # --------------------------------------------------------------
+    def _handle_at(self, local_pos: QPointF) -> str | None:
+        for name, rect in self._handle_hit_rects().items():
             if rect.contains(local_pos):
                 return name
         return None
