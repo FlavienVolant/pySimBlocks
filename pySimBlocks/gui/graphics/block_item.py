@@ -37,6 +37,7 @@ class BlockItem(QGraphicsRectItem):
     HEIGHT = 60
     GRID_DX = 5
     GRID_DY = 5
+    SELECTION_HANDLE_SIZE = 8
 
     def __init__(self,
                  instance: "BlockInstance",
@@ -98,8 +99,9 @@ class BlockItem(QGraphicsRectItem):
     # --------------------------------------------------------------------------
     def paint(self, painter, option, widget=None):
         t = self.view.theme
+        selected = bool(option.state & QStyle.State_Selected)
 
-        if option.state & QStyle.State_Selected:
+        if selected:
             painter.setBrush(t.block_bg_selected)
             painter.setPen(QPen(t.block_border_selected, 3))
         else:
@@ -107,11 +109,26 @@ class BlockItem(QGraphicsRectItem):
             painter.setPen(QPen(t.block_border, 3))
 
         painter.drawRect(self.rect())
-        if option.state & QStyle.State_Selected:
+        if selected:
             painter.setPen(t.text_selected)
         else:
             painter.setPen(t.text)
         painter.drawText(self.rect(), Qt.AlignCenter, self.instance.name)
+
+        if selected:
+            half = self.SELECTION_HANDLE_SIZE / 2
+            r = self.rect()
+            corners = [
+                (r.left(), r.top()),
+                (r.right(), r.top()),
+                (r.left(), r.bottom()),
+                (r.right(), r.bottom()),
+            ]
+
+            painter.setPen(QPen(t.block_border_selected, 1))
+            painter.setBrush(t.text_selected)
+            for x, y in corners:
+                painter.drawRect(x - half, y - half, self.SELECTION_HANDLE_SIZE, self.SELECTION_HANDLE_SIZE)
 
     # --------------------------------------------------------------------------
     # Event Methods
