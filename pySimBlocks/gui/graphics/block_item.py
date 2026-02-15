@@ -47,10 +47,16 @@ class BlockItem(QGraphicsRectItem):
                  view: "DiagramView",
                  layout: dict | None = None,
     ):
-        super().__init__(0, 0, self.WIDTH, self.HEIGHT)
+        layout = layout or {}
+        width = layout.get("width", self.WIDTH)
+        height = layout.get("height", self.HEIGHT)
+        width = float(width) if isinstance(width, (int, float)) else float(self.WIDTH)
+        height = float(height) if isinstance(height, (int, float)) else float(self.HEIGHT)
+        width = max(float(self.MIN_WIDTH), width)
+        height = max(float(self.MIN_HEIGHT), height)
+        super().__init__(0, 0, width, height)
         self.view = view
         self.instance = instance
-        layout = layout or {}
         self.orientation = layout.get("orientation", "normal")
         self._resize_handle: str | None = None
         self._resize_start_mouse: QPointF | None = None
