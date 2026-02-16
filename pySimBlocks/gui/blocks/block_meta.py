@@ -120,14 +120,9 @@ class MyBlockMeta(BlockMeta):
 
     # ------------------------------------------------------------
     def gather_params(self, session: BlockDialogSession) -> dict[str, Any]:
-        params = session.local_params.copy()
-        for pname in params.keys():
-            if pname == "name":
-                continue
-            if not self.is_parameter_active(pname, params):
-                params[pname] = None
-
-        return params
+        # Keep full local state, including inactive params, so values are cached
+        # across visibility toggles and dialog reopen.
+        return session.local_params.copy()
 
     # --------------------------------------------------------------------------
     # Port resolution
@@ -332,4 +327,3 @@ class MyBlockMeta(BlockMeta):
             """)
         elif isinstance(widget, QComboBox):
             widget.setEnabled(False)
-
