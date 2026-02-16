@@ -84,8 +84,8 @@ class FileSourceMeta(BlockMeta):
             )
         ]
 
-    def is_parameter_active(self, param_name: str, instance_values: Dict[str, Any]) -> bool:
-        file_path = str(instance_values.get("file_path", "") or "")
+    def is_parameter_active(self, param_name: str, instance_params: Dict[str, Any]) -> bool:
+        file_path = str(instance_params.get("file_path", "") or "")
         ext = file_path.rsplit(".", 1)[-1].lower() if "." in file_path else ""
 
         if param_name == "key":
@@ -94,4 +94,4 @@ class FileSourceMeta(BlockMeta):
         if param_name == "use_time":
             return ext in {"npz", "csv"}
 
-        return super().is_parameter_active(param_name, instance_values)
+        return super().is_parameter_active(param_name, instance_params)

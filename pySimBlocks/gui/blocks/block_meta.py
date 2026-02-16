@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 from pySimBlocks.gui.blocks.parameter_meta import ParameterMeta
 from pySimBlocks.gui.blocks.port_meta import PortMeta
 from pySimBlocks.gui.model import BlockInstance, PortInstance
+from pySimBlocks.gui.blocks.block_dialog_session import BlockDialogSession
 
 
 class BlockMeta(ABC):
@@ -94,20 +95,21 @@ class MyBlockMeta(BlockMeta):
     description: str
 
     # ----------- Optional declarations -----------
-
     doc_path: Path | None = None
     parameters: List[ParameterMeta] = []
     inputs: List[PortMeta] = []
     outputs: List[PortMeta] = []
 
-    param_widgets: Dict[str, QWidget] = {}
-    param_labels: Dict[str, QLabel] = {}
-
+    # --------------------------------------------------------------------------
+    # Dialog session management
+    # -------------------------------------------------------------------------- 
+    def create_dialog_session(self, instance: BlockInstance) -> BlockDialogSession:
+        return BlockDialogSession(self, instance)
 
     # --------------------------------------------------------------------------
     # Parameter resolution
     # --------------------------------------------------------------------------
-    def is_parameter_active(self, param_name: str, instance_values: Dict[str, Any]) -> bool:
+    def is_parameter_active(self, param_name: str, instance_params: Dict[str, Any]) -> bool:
         """
         Default: all parameters are always active.
         Children override if needed.
@@ -115,14 +117,8 @@ class MyBlockMeta(BlockMeta):
         return True
 
     # ------------------------------------------------------------
-    def gather_params(self) -> dict[str, Any]:
-        params: dict[str, Any] = {
-            "name": self.name_edit.text(),
-            **{
-                pname: self.get_param_value(widget)
-                for pname, widget in self.param_widgets.items()
-            }
-        }
+    def gather_params(self, session: BlockDialogSession) -> dict[str, Any]:
+        params = session.local_params.copy()
         for pname in params.keys():
             if pname == "name":
                 continue
@@ -177,9 +173,9 @@ class MyBlockMeta(BlockMeta):
     # --------------------------------------------------------------------------
     # QT dialog display 
     # --------------------------------------------------------------------------
-    def build_description(self, instance: BlockInstance, form: QFormLayout):
+    def build_description(self, form: QFormLayout):
         """ Default description display. Children can override if needed. """
-        title = QLabel(f"<b>{instance.meta.name}</b>")
+        title = QLabel(f"<b>{self.name}</b>")
         title.setAlignment(Qt.AlignmentFlag.AlignLeft)
         form.addRow(title)
 
@@ -192,7 +188,7 @@ class MyBlockMeta(BlockMeta):
         frame_layout.setContentsMargins(8, 6, 8, 6)
 
         desc = QTextBrowser()
-        desc.setMarkdown(instance.meta.description)
+        desc.setMarkdown(self.description)
         desc.setReadOnly(True)
         desc.setFrameShape(QFrame.NoFrame)
         desc.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
@@ -205,7 +201,7 @@ class MyBlockMeta(BlockMeta):
 
     # ------------------------------------------------------
     def build_pre_param(self, 
-                        instance: BlockInstance,
+                        session: BlockDialogSession,
                         form: QFormLayout, 
                         readonly: bool = False):
         """ Default: no pre-parameter widgets. Children override if needed. """
@@ -213,66 +209,60 @@ class MyBlockMeta(BlockMeta):
 
     # ------------------------------------------------------------
     def build_param(self, 
-                    instance: BlockInstance,
+                    session: BlockDialogSession,
                     form: QFormLayout, 
                     readonly: bool = False):
         """ Default: no parameter widgets. Children override if needed. """
 
 
         # --- Block name ---
-        self.name_edit = QLineEdit(instance.name)
-        form.addRow(QLabel("Block name:"), self.name_edit)
+        name_edit = QLineEdit(session.instance.name)
+        name_edit.textChanged.connect(
+            lambda val: self._on_param_changed(val, "name", session, readonly)
+        )
+        form.addRow(QLabel("Block name:"), name_edit)
         if readonly:
-            self.name_edit.setReadOnly(True)
+            name_edit.setReadOnly(True)
+        session.name_edit = name_edit
 
+        # --- Parameters ---
         for param_meta in self.parameters:
             param_name = param_meta.name
 
-            widget = self._create_param_widget(param_meta, 
-                                               instance.parameters, readonly)
+            widget = self._create_param_widget(session, param_meta, readonly)
             if widget is None:
                 continue
             if readonly:
-                if isinstance(widget, QLineEdit):
-                    widget.setReadOnly(True)
-                    widget.setStyleSheet("""
-                        QLineEdit {
-                            background-color: #2b2b2b;
-                            color: #888888;
-                            border: 1px solid #444444;
-                        }
-                    """)
-                elif isinstance(widget, QComboBox):
-                    widget.setEnabled(False)
+                self._set_readonly_style(widget) 
 
             label = QLabel(f"{param_name}:")
             if param_meta.description:
                 label.setToolTip(param_meta.description)
             form.addRow(label, widget)
 
-            self.param_widgets[param_name] = widget
-            self.param_labels[param_name] = label
+            session.param_widgets[param_name] = widget
+            session.param_labels[param_name] = label
 
 
     # ------------------------------------------------------------
     def build_post_param(self, 
-                         instance: BlockInstance,
+                         session: BlockDialogSession,
                          form: QFormLayout, 
                          readonly: bool = False):
         """ Default: no post-parameter widgets. Children override if needed. """
         pass
 
     # ------------------------------------------------------------
-    def refresh_form(self, params: Dict[str, Any]):
+    def refresh_form(self, session: BlockDialogSession):
         """
         Refresh the parameter widgets visibility based on
         BlockMeta.is_parameter_active and current local_params.
         """
 
-        for param_name, widget in self.param_widgets.items():
-            label = self.param_labels[param_name]
+        for param_name, widget in session.param_widgets.items():
+            label = session.param_labels[param_name]
 
-            active = self.is_parameter_active(param_name, params)
+            active = self.is_parameter_active(param_name, session.local_params)
 
             widget.setVisible(active)
             label.setVisible(active)
@@ -282,60 +272,70 @@ class MyBlockMeta(BlockMeta):
     # Private methods
     # --------------------------------------------------------------------------
     def _create_param_widget(self, 
-                             meta: ParameterMeta, 
-                             inst_params: dict[str, Any],
+                             session: BlockDialogSession,
+                             pmeta: ParameterMeta, 
                              readonly: bool = False
                              ) -> QWidget:
         # ENUM
-        if meta.type == "enum":
-            return self._create_enum_widget(meta, inst_params, readonly)
+        if pmeta.type == "enum":
+            return self._create_enum_widget(session, pmeta, readonly)
         
         # Default: text edit
-        return self._create_edit_widget(meta, inst_params, readonly)
+        return self._create_edit_widget(session, pmeta, readonly)
 
 
     # ------------------------------------------------------------
     def _create_edit_widget(self,
-                            meta: ParameterMeta,
-                            inst_params: dict[str, Any],
+                            session: BlockDialogSession,
+                            pmeta: ParameterMeta,
                             readonly: bool = False) -> QLineEdit:
         edit = QLineEdit()
-        value = inst_params.get(meta.name)
+        value = session.local_params.get(pmeta.name)
         if value is not None:
             edit.setText(str(value))
-        elif meta.default:
-            edit.setText(str(meta.default))
+        elif pmeta.default:
+            edit.setText(str(pmeta.default))
         edit.textChanged.connect(
-            lambda val: self._on_param_changed(val, meta.name, inst_params, readonly)
+            lambda val: self._on_param_changed(val, pmeta.name, session, readonly)
         )
         return edit
 
     # ------------------------------------------------------------
     def _create_enum_widget(self,
-                            meta: ParameterMeta,
-                            inst_params: dict[str, Any],
+                            session: BlockDialogSession,
+                            pmeta: ParameterMeta,
                             readonly: bool = False) -> QComboBox:
         combo = QComboBox()
-        for v in meta.enum:
+        for v in pmeta.enum:
             combo.addItem(str(v))
-        value = inst_params.get(meta.name)
+        value = session.local_params.get(pmeta.name)
         if value is not None:
             combo.setCurrentText(str(value))
         combo.currentTextChanged.connect(
-            lambda val: self._on_param_changed(val, meta.name, inst_params, readonly)
+            lambda val: self._on_param_changed(val, pmeta.name, session, readonly)
         )
         return combo
 
-    def _get_edit_value(self, ):
-        pass
-
-    def _get_enum_value(self, ):
-        pass
-
-
     # ------------------------------------------------------------
-    def _on_param_changed(self, value, name, params, readonly):
+    def _on_param_changed(self, val, name, session: BlockDialogSession, readonly: bool):
         if readonly:
             return
-        params[name] = value
-        self.refresh_form(params)
+        session.local_params[name] = val
+        self.refresh_form(session)
+
+    # ------------------------------------------------------------
+    def _set_readonly_style(self, widget: QWidget):
+        if isinstance(widget, QLineEdit):
+            widget.setReadOnly(True)
+            widget.setStyleSheet("""
+                QLineEdit {
+                    background-color: #2b2b2b;
+                    color: #888888;
+                    border: 1px solid #444444;
+                }
+            """)
+        elif isinstance(widget, QComboBox):
+            widget.setEnabled(False)
+
+
+

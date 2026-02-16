@@ -18,7 +18,7 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import (
     QDialog,
@@ -44,7 +44,6 @@ class BlockDialog(QDialog):
         self.block = block
         self.meta = block.instance.meta
         self.instance = block.instance
-        self.local_params: dict[str, Any] = dict(block.instance.parameters)
 
         self.readonly = readonly
         if self.readonly:
@@ -54,6 +53,7 @@ class BlockDialog(QDialog):
         self.setMinimumWidth(300)
 
         main_layout = QVBoxLayout(self)
+        self.session = self.meta.create_dialog_session(self.instance)
         self.build_meta_layout(main_layout)
         self.build_buttons_layout(main_layout)
 
@@ -62,12 +62,12 @@ class BlockDialog(QDialog):
     # --------------------------------------------------------------------------
     def build_meta_layout(self, layout: QVBoxLayout):
         form = QFormLayout()
-        self.meta.build_description(self.instance, form)
-        self.meta.build_pre_param(self.instance, form, self.readonly)
-        self.meta.build_param(self.instance, form, self.readonly)
-        self.meta.build_post_param(self.instance, form, self.readonly)
+        self.meta.build_description(form)
+        self.meta.build_pre_param(self.session, form, self.readonly)
+        self.meta.build_param(self.session, form, self.readonly)
+        self.meta.build_post_param(self.session, form, self.readonly)
         layout.addLayout(form)
-        self.meta.refresh_form(self.instance.parameters)
+        self.meta.refresh_form(self.session)
 
     def build_buttons_layout(self, layout: QVBoxLayout):
         buttons_layout = QHBoxLayout()
@@ -97,7 +97,7 @@ class BlockDialog(QDialog):
         if self.readonly:
             return
 
-        params = self.meta.gather_params()
+        params = self.meta.gather_params(self.session)
         self.block.view.update_block_param_event(self.block.instance, params)
 
     # ------------------------------------------------------------
