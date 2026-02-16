@@ -18,35 +18,30 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from typing import Literal, TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING
 
-from pySimBlocks.gui.blocks.port_meta import PortMeta
+from PySide6.QtWidgets import QLineEdit
+
+from pySimBlocks.gui.models.block_instance import BlockInstance
 
 if TYPE_CHECKING:
-    from pySimBlocks.gui.model.connection_instance import ConnectionInstance
-    from pySimBlocks.gui.project_controller import BlockInstance
+    from pySimBlocks.gui.blocks.block_meta import BlockMeta
 
-class PortInstance:
+
+class BlockDialogSession:
     def __init__(
         self,
-        name: str,
-        display_as: str,
-        direction: Literal['input', 'output'],
-        block: "BlockInstance"
+        meta: "BlockMeta",
+        instance: BlockInstance,
+        project_dir: Path | None = None,
     ):
-        self.name = name
-        self.display_as = display_as
-        self.direction = direction
-        self.block = block
+        self.meta = meta              
+        self.instance = instance
+        self.project_dir = project_dir
 
-    def is_compatible(self, other: "PortInstance"):
-        return self.direction != other.direction
-
-    def can_accept_connection(self, connections: list["ConnectionInstance"]) -> bool:
-        """
-        Check whether this port can accept a new connection.
-
-        The `connections` list is expected to contain all and only the connections
-        already linked to this PortInstance.
-        """
-        return self.direction == "output" or not connections
+        # --- STATE UI (par dialog) ---
+        self.local_params = dict(instance.parameters)   
+        self.param_widgets = {}
+        self.param_labels = {}         
+        self.name_edit: QLineEdit | None = None     

@@ -21,7 +21,7 @@
 import uuid
 from typing import TYPE_CHECKING, Any, Dict, List
 
-from pySimBlocks.gui.model.port_instance import PortInstance
+from pySimBlocks.gui.models.port_instance import PortInstance
 
 try: # Python 3.11+
     from typing import Self

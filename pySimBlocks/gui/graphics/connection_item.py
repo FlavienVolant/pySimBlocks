@@ -23,7 +23,7 @@ from PySide6.QtGui import QPen, QPainterPath, QPainterPathStroker
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsPathItem
 
 from pySimBlocks.gui.graphics.port_item import PortItem
-from pySimBlocks.gui.model.connection_instance import ConnectionInstance
+from pySimBlocks.gui.models.connection_instance import ConnectionInstance
 
 
 class OrthogonalRoute:

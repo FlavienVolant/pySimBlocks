@@ -26,7 +26,7 @@ from PySide6.QtWidgets import QGraphicsItem, QGraphicsTextItem
 
 if TYPE_CHECKING:
     from pySimBlocks.gui.graphics.block_item import BlockItem
-    from pySimBlocks.gui.model.port_instance import PortInstance
+    from pySimBlocks.gui.models.port_instance import PortInstance
 
 
 class PortItem(QGraphicsItem):

@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from PySide6.QtCore import QObject, Signal, QPointF
 
-from pySimBlocks.gui.model import (
+from pySimBlocks.gui.models import (
     BlockInstance,
     ConnectionInstance,
     PortInstance,

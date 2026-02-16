@@ -168,7 +168,7 @@ description: str
 doc_path: Path | None
 --
 get_param(param_name: str) -&gt; ParameterMeta | None
-is_parameter_active(param_name: str, instance_values: Dict[str, Any]) -&gt; bool
+is_parameter_active(param_name: str, instance_params: Dict[str, Any]) -&gt; bool
 resolve_port_group(PortMeta, direction: str, BlockInstance) -&gt; list[PortInstance]
 build_ports(BlockInstance) -&gt; list[PortInstance)
 </panel_attributes>

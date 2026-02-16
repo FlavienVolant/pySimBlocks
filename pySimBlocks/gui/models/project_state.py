@@ -20,9 +20,9 @@
 
 from pathlib import Path
 
-from pySimBlocks.gui.model.block_instance import BlockInstance, PortInstance
-from pySimBlocks.gui.model.connection_instance import ConnectionInstance
-from pySimBlocks.gui.model.project_simulation_params import ProjectSimulationParams
+from pySimBlocks.gui.models.block_instance import BlockInstance, PortInstance
+from pySimBlocks.gui.models.connection_instance import ConnectionInstance
+from pySimBlocks.gui.models.project_simulation_params import ProjectSimulationParams
 
 class ProjectState:
     def __init__(self, directory_path: Path):

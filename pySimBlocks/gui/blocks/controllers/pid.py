@@ -104,13 +104,13 @@ class PIDMeta(BlockMeta):
             )
         ]
 
-    def is_parameter_active(self, param_name: str, instance_values: Dict[str, Any]) -> bool:
+    def is_parameter_active(self, param_name: str, instance_params: Dict[str, Any]) -> bool:
 
         if param_name == "Kp":
-            return instance_values["controller"] in ["P", "PI", "PD", "PID"]
+            return instance_params["controller"] in ["P", "PI", "PD", "PID"]
         elif param_name == "Ki":
-            return instance_values["controller"] in ["I", "PI", "PID"]
+            return instance_params["controller"] in ["I", "PI", "PID"]
         elif param_name == "Kd":
-            return instance_values["controller"] in ["PD", "PID"]
+            return instance_params["controller"] in ["PD", "PID"]
 
-        return super().is_parameter_active(param_name, instance_values)
+        return super().is_parameter_active(param_name, instance_params)

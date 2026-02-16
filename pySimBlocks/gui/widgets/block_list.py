@@ -25,7 +25,7 @@ from PySide6.QtGui import QDrag
 
 from pySimBlocks.gui.blocks.block_meta import BlockMeta
 from pySimBlocks.gui.dialogs.block_dialog import BlockDialog
-from pySimBlocks.gui.model.block_instance import BlockInstance
+from pySimBlocks.gui.models.block_instance import BlockInstance
 
 class _PreviewBlock:
     def __init__(self, instance):

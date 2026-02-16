@@ -71,9 +71,12 @@ class ProjectLoaderYaml(ProjectLoader):
 
             # ---- parameters ----
             raw_params = params_blocks.get(name, {})
-            for pname, pvalue in raw_params.items():
-                if pname in block.parameters:
-                    block.parameters[pname] = pvalue
+            for pmeta in block.meta.parameters:
+                pname = pmeta.name
+                if pname in raw_params:
+                    block.parameters[pname] = raw_params[pname]
+                elif pmeta.autofill and pmeta.default is not None:
+                    block.parameters[pname] = pmeta.default
 
             block.resolve_ports()
             controller.view.refresh_block_port(block)

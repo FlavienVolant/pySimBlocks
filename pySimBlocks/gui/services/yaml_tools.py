@@ -23,7 +23,7 @@ import os
 import yaml
 
 from pySimBlocks.gui.graphics.block_item import BlockItem
-from pySimBlocks.gui.model.project_state import ProjectState
+from pySimBlocks.gui.models.project_state import ProjectState
 
 
 def load_yaml_file(path: str) -> dict:

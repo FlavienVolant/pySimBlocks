@@ -22,7 +22,7 @@
 from typing import Literal
 from pySimBlocks.gui.blocks.block_meta import BlockMeta, ParameterMeta
 from pySimBlocks.gui.blocks.port_meta import PortMeta
-from pySimBlocks.gui.model import BlockInstance, PortInstance
+from pySimBlocks.gui.models import BlockInstance, PortInstance
 
 class SumMeta(BlockMeta):
 
