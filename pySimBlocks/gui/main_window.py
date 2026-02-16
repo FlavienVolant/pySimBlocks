@@ -29,7 +29,7 @@ from PySide6.QtWidgets import QMainWindow, QSplitter
 
 from pySimBlocks.gui.blocks.block_meta import BlockMeta
 from pySimBlocks.gui.dialogs.unsaved_dialog import UnsavedChangesDialog
-from pySimBlocks.gui.model.project_state import ProjectState
+from pySimBlocks.gui.models.project_state import ProjectState
 from pySimBlocks.gui.project_controller import ProjectController
 from pySimBlocks.gui.services.project_loader import ProjectLoaderYaml
 from pySimBlocks.gui.services.project_saver import ProjectSaverYaml

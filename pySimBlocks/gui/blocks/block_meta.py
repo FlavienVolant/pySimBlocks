@@ -38,7 +38,7 @@ from PySide6.QtWidgets import (
 
 from pySimBlocks.gui.blocks.parameter_meta import ParameterMeta
 from pySimBlocks.gui.blocks.port_meta import PortMeta
-from pySimBlocks.gui.model import BlockInstance, PortInstance
+from pySimBlocks.gui.models import BlockInstance, PortInstance
 from pySimBlocks.gui.blocks.block_dialog_session import BlockDialogSession
 
 
@@ -109,7 +109,9 @@ class MyBlockMeta(BlockMeta):
     # --------------------------------------------------------------------------
     # Parameter resolution
     # --------------------------------------------------------------------------
-    def is_parameter_active(self, param_name: str, instance_params: Dict[str, Any]) -> bool:
+    def is_parameter_active(self, 
+                            param_name: str, 
+                            instance_params: Dict[str, Any]) -> bool:
         """
         Default: all parameters are always active.
         Children override if needed.

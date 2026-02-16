@@ -31,7 +31,7 @@ from PySide6.QtCore import Qt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
-from pySimBlocks.gui.model.project_state import ProjectState
+from pySimBlocks.gui.models.project_state import ProjectState
 from pySimBlocks.core.config import PlotConfig
 from pySimBlocks.project.plot_from_config import plot_from_config
 

@@ -1,7 +1,7 @@
 import os
 import shutil
 import sys
-from pySimBlocks.gui.model import ProjectState
+from pySimBlocks.gui.models import ProjectState
 from pySimBlocks.gui.services.yaml_tools import save_yaml
 from pySimBlocks.project.generate_run_script import generate_python_content
 

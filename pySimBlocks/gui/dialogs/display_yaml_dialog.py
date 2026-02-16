@@ -30,7 +30,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QFont
 
-from pySimBlocks.gui.model.project_state import ProjectState
+from pySimBlocks.gui.models.project_state import ProjectState
 from pySimBlocks.gui.services.yaml_tools import dump_parameter_yaml, dump_model_yaml, dump_layout_yaml
 from pySimBlocks.gui.widgets.diagram_view import DiagramView
 

@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QLineEdit
 
-from pySimBlocks.gui.model.block_instance import BlockInstance
+from pySimBlocks.gui.models.block_instance import BlockInstance
 
 if TYPE_CHECKING:
     from pySimBlocks.gui.blocks.block_meta import BlockMeta

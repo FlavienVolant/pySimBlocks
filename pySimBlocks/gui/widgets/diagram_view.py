@@ -28,8 +28,8 @@ from pySimBlocks.gui.graphics.block_item import BlockItem
 from pySimBlocks.gui.graphics.connection_item import ConnectionItem, OrthogonalRoute
 from pySimBlocks.gui.graphics.port_item import PortItem
 from pySimBlocks.gui.graphics.theme import make_theme
-from pySimBlocks.gui.model.block_instance import BlockInstance
-from pySimBlocks.gui.model.connection_instance import ConnectionInstance
+from pySimBlocks.gui.models.block_instance import BlockInstance
+from pySimBlocks.gui.models.connection_instance import ConnectionInstance
 
 if TYPE_CHECKING:
     from pySimBlocks.gui.project_controller import ProjectController

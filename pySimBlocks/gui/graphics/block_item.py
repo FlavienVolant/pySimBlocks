@@ -28,7 +28,7 @@ from pySimBlocks.gui.dialogs.block_dialog import BlockDialog
 from pySimBlocks.gui.graphics.port_item import PortItem
 
 if TYPE_CHECKING:
-    from pySimBlocks.gui.model.block_instance import BlockInstance
+    from pySimBlocks.gui.models.block_instance import BlockInstance
     from pySimBlocks.gui.widgets.diagram_view import DiagramView
 
 

@@ -18,35 +18,14 @@
 #  Authors: see Authors.txt
 # ******************************************************************************
 
-from typing import Literal, TYPE_CHECKING
+from pySimBlocks.gui.models.block_instance import BlockInstance
+from pySimBlocks.gui.models.connection_instance import ConnectionInstance
+from pySimBlocks.gui.models.port_instance import PortInstance
+from pySimBlocks.gui.models.project_state import ProjectState
 
-from pySimBlocks.gui.blocks.port_meta import PortMeta
-
-if TYPE_CHECKING:
-    from pySimBlocks.gui.model.connection_instance import ConnectionInstance
-    from pySimBlocks.gui.project_controller import BlockInstance
-
-class PortInstance:
-    def __init__(
-        self,
-        name: str,
-        display_as: str,
-        direction: Literal['input', 'output'],
-        block: "BlockInstance"
-    ):
-        self.name = name
-        self.display_as = display_as
-        self.direction = direction
-        self.block = block
-
-    def is_compatible(self, other: "PortInstance"):
-        return self.direction != other.direction
-
-    def can_accept_connection(self, connections: list["ConnectionInstance"]) -> bool:
-        """
-        Check whether this port can accept a new connection.
-
-        The `connections` list is expected to contain all and only the connections
-        already linked to this PortInstance.
-        """
-        return self.direction == "output" or not connections
+__all__ = [
+    "BlockInstance",
+    "ConnectionInstance",
+    "PortInstance",
+    "ProjectState"
+]
