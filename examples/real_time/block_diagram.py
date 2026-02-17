@@ -15,7 +15,7 @@ from pySimBlocks.real_time import RealTimeRunner
 def process_block_diagram(shared_markers_pos, shared_ref_ol, shared_ref_cl, 
                           shared_control_mode, shared_update, 
                           event_frame, event_measure):
-    """pySimblocks runner process.
+    """pySimBlocks runner process.
     """
     init_angles = np.array([0.7, 0, 0.7, 0])
     motors = setup_motors(init_angles)

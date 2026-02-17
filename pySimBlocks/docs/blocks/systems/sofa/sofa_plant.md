@@ -5,7 +5,7 @@
 The **SofaPlant** block embeds a [SOFA](https://www.sofa-framework.org/) simulation as a dynamic system inside a pySimBlocks model.
 
 Unlike *SofaExchangeIO*, which is used inside a SOFA controller, **SofaPlant runs the SOFA simulation itself** in a separate worker process and exposes it as a discrete-time plant.
-However, this block can be used in a diagram that will be run in both simulations with pySimblocks as master and SOFA as master. In the second case, the block is automatically replaced by a *SofaExchangeIO* block.
+However, this block can be used in a diagram that will be run in both simulations with pySimBlocks as master and SOFA as master. In the second case, the block is automatically replaced by a *SofaExchangeIO* block.
 
 At each simulation step:
 - control inputs are sent to SOFA,

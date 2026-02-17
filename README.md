@@ -1,11 +1,23 @@
 # pySimBlocks
 
-Simulink python project
+A lightweight block-diagram simulation framework for discrete-time systems in Python.
 
-pySimBlocks is a lightweight and extensible environment for building, configuring,
-and executing block-diagram models—similar to Simulink—directly in Python, 
-featuring a PySide6-based graphical editor, a discrete-time simulation engine, 
-and automatic project generation from YAML configurations.
+pySimBlocks allows you to build, configure, and execute discrete-time
+control systems using either:
+
+- A pure Python API
+- A graphical editor (PySide6)
+- YAML project configuration
+- Optional SOFA and hardware integration
+
+## Features
+
+- Block-based modeling (Simulink-like)
+- Deterministic discrete-time simulation engine
+- PySide6 graphical editor
+- YAML-based project serialization
+- Exportable Python runner (`run.py`)
+- Extensible block architecture
 
 ## Installation
 
@@ -25,17 +37,22 @@ cd pySimBlocks
 pip install .
 ```
 
-## Run GUI application
+## First Steps
 
-```
+To open the graphical editor, run:
+```bash
 pysimblocks
 ```
+
+See the [Getting Started Guide](./docs/User_Guide/getting_started.md) for
+tutorials on building your first simulation with pySimBlocks.
+
 
 ## Information
 
 ### License
 
-pySimblocks is LGPL.
+pySimBlocks is LGPL.
 
 LGPL refers to the GNU Lesser General Public License as published by the Free Software
 Foundation; either version 3.0 of the License, or (at your option) any later 
