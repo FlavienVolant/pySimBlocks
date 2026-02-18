@@ -1,9 +1,8 @@
 # pySimBlocks
 
-A lightweight block-diagram simulation framework for discrete-time systems in Python.
+A deterministic block-diagram simulation framework for discrete-time modeling, co-simulation and research prototyping in Python.
 
-pySimBlocks allows you to build, configure, and execute discrete-time
-control systems using either:
+pySimBlocks allows you to build, configure, and execute discrete-time systems using either:
 
 - A pure Python API
 - A graphical editor (PySide6)
@@ -38,6 +37,65 @@ pip install .
 ```
 
 ## First Steps
+
+### Quick Example
+
+The following example models a damped harmonic oscillator:
+
+$$ \ddot{x} +0.5 \dot{x} +2 x = 0 $$
+
+The continuous-time equation is implemented using explicit forward Euler discretization through discrete integrator blocks with a fixed time step.
+
+The system is assembled explicitly from discrete operators.
+
+```python
+from pySimBlocks import Model, Simulator, SimulationConfig, PlotConfig
+from pySimBlocks.blocks.operators import Gain, Sum, DiscreteIntegrator
+from pySimBlocks.project.plot_from_config import plot_from_config
+
+# 1. Create the blocks
+I1 = DiscreteIntegrator("x", initial_state=5)
+I2 = DiscreteIntegrator("v", initial_state=2.)
+A1 = Gain(name="damping", gain=0.5)
+A2 = Gain(name="stiffness", gain=2)
+S = Sum(name="sum", signs="--")
+
+# 2. Build the model
+model = Model("Example")
+for block in [I1, I2, A1, A2, S]:
+    model.add_block(block)
+
+model.connect("x", "out", "v", "in")
+model.connect("x", "out", "damping", "in")
+model.connect("v", "out", "stiffness", "in")
+model.connect("damping", "out", "sum", "in1")
+model.connect("stiffness", "out", "sum", "in2")
+model.connect("sum", "out", "x", "in")
+
+# 3. Create the simulator
+sim_cfg = SimulationConfig(dt=0.05, T=30.)
+sim = Simulator(model, sim_cfg)
+
+# 4. Run the simulation
+logs = sim.run(logging=[
+        "x.outputs.out",
+        "v.outputs.out",
+    ]
+)
+
+# 5. Plot the results
+plot_cfg = PlotConfig([
+    {"title": "Position and Velocity",
+     "signals": ["x.outputs.out", "v.outputs.out"],},
+    ])
+plot_from_config(logs, plot_cfg)
+```
+
+The simulated position and velocity exhibit the expected damped oscillatory behavior.
+
+![Alt Text](./docs/User_Guide/images/quick_example.png)
+
+### Graphical Editor
 
 To open the graphical editor, run:
 ```bash
